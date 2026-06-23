@@ -95,10 +95,18 @@ func main() {
 	apiKeySvc := service.NewAPIKeyService(apiKeyRepo, projectRepo, memberRepo, auditRepo, apiKeySvcCfg)
 	auditSvc := service.NewAuditService(auditRepo)
 
-	// TODO: accountSourceRepo and accountSourceSvc will be created by the
-	// service layer agent.
-	// accountSourceRepo := repository.NewAccountSourceRepo(db.Pool)
-	// accountSourceSvc := service.NewAccountSourceService(accountSourceRepo, auditRepo)
+	accountSourceRepo := repository.NewAccountSourceRepo(db.Pool)
+	channelRepo := repository.NewChannelRepo(db.Pool)
+	modelRepo := repository.NewModelRepo(db.Pool)
+
+	accountSourceSvc := service.NewAccountSourceService(accountSourceRepo, auditRepo)
+	channelSvc := service.NewChannelService(channelRepo, accountSourceRepo, auditRepo)
+	routingSvc := service.NewRoutingService(accountSourceRepo, modelRepo, db.Redis)
+	healthSvc := service.NewHealthService(accountSourceRepo, db.Redis)
+
+	// channelSvc and routingSvc are wired here for future use when channel and
+	// routing HTTP handlers are added to the admin and portal APIs.
+	_, _ = channelSvc, routingSvc
 
 	// --- Adapters: bridge service types to handler interfaces ---
 	// Some handler interfaces require methods not yet on the service types
@@ -110,8 +118,7 @@ func main() {
 		projectServiceAdapter       handler.ProjectService       = projectSvc
 		apiKeyServiceAdapter        handler.APIKeyService        = &apiKeyServiceBridge{svc: apiKeySvc}
 		auditServiceAdapter         handler.AuditService         = auditSvc
-		// accountSourceServiceAdapter will be wired when the service exists.
-		accountSourceServiceAdapter handler.AccountSourceService = nil
+		accountSourceServiceAdapter handler.AccountSourceService = &accountSourceServiceBridge{svc: accountSourceSvc}
 	)
 
 	// --- Handler layer ---
@@ -132,6 +139,9 @@ func main() {
 		auditServiceAdapter,
 		userServiceAdapter,
 	)
+
+	// --- Start background health check loop ---
+	go healthSvc.StartHealthCheckLoop(context.Background(), 60*time.Second)
 
 	// --- Middleware layer ---
 	authMiddleware := mw.NewAuthMiddleware(jwtSecret)
@@ -325,4 +335,46 @@ func (b *apiKeyServiceBridge) ListByProject(ctx context.Context, projectID, user
 }
 func (b *apiKeyServiceBridge) Revoke(ctx context.Context, keyID, userID string) error {
 	return b.svc.Revoke(ctx, keyID, userID)
+}
+
+// accountSourceServiceBridge adapts *service.AccountSourceService to
+// handler.AccountSourceService. It converts service-layer types to the
+// response types expected by the admin handler.
+type accountSourceServiceBridge struct {
+	svc *service.AccountSourceService
+}
+
+func (b *accountSourceServiceBridge) List(ctx context.Context, page, pageSize int) ([]handler.AccountSourceResponse, int, error) {
+	sources, total, err := b.svc.List(ctx, "", page, pageSize)
+	if err != nil {
+		return nil, 0, err
+	}
+	responses := make([]handler.AccountSourceResponse, len(sources))
+	for i, s := range sources {
+		responses[i] = handler.AccountSourceResponse{
+			ID:         s.ID,
+			Name:       s.Name,
+			SourceType: s.SourceType,
+			Status:     s.Status,
+		}
+	}
+	return responses, total, nil
+}
+
+func (b *accountSourceServiceBridge) Create(ctx context.Context, name, sourceType, providerID string, credentialCiphertext []byte, createdBy string) (*handler.AccountSourceResponse, error) {
+	source, err := b.svc.Create(ctx, createdBy, service.CreateSourceParams{
+		Name:       name,
+		SourceType: sourceType,
+		ProviderID: &providerID,
+		Credential: string(credentialCiphertext),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &handler.AccountSourceResponse{
+		ID:         source.ID,
+		Name:       source.Name,
+		SourceType: source.SourceType,
+		Status:     source.Status,
+	}, nil
 }

@@ -1,0 +1,543 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ===== Tabs ===== */
+.tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.tab {
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #6b7280;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.tab:hover {
+  color: #374151;
+}
+
+.tabActive {
+  composes: tab;
+  color: #4f46e5;
+  border-bottom-color: #4f46e5;
+}
+
+/* ===== Toolbar ===== */
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.toolbarLeft {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.filterSelect {
+  padding: 6px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #374151;
+  background: #fff;
+  outline: none;
+}
+
+.filterSelect:focus {
+  border-color: #4f46e5;
+}
+
+.viewToggle {
+  display: flex;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.viewToggleBtn {
+  padding: 6px 12px;
+  font-size: 13px;
+  background: #fff;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+}
+
+.viewToggleBtn:first-child {
+  border-right: 1px solid #d1d5db;
+}
+
+.viewToggleBtnActive {
+  composes: viewToggleBtn;
+  background: #4f46e5;
+  color: #fff;
+}
+
+.addButton {
+  padding: 8px 16px;
+  background: #4f46e5;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+
+.addButton:hover {
+  background: #4338ca;
+}
+
+/* ===== Table ===== */
+.tableWrapper {
+  overflow-x: auto;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.table th {
+  background: #f9fafb;
+  padding: 10px 14px;
+  text-align: left;
+  font-weight: 600;
+  color: #374151;
+  font-size: 13px;
+  white-space: nowrap;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid #f3f4f6;
+  color: #374151;
+  white-space: nowrap;
+}
+
+.table tr:last-child td {
+  border-bottom: none;
+}
+
+.table tr:hover td {
+  background: #f9fafb;
+}
+
+.tableName {
+  font-weight: 500;
+  color: #111827;
+}
+
+/* ===== Type badge ===== */
+.typeBadge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.6;
+}
+
+.typeOfficial {
+  background: #ede9fe;
+  color: #7c3aed;
+}
+
+.typeOAuth {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.typeUpstream {
+  background: #fce7f3;
+  color: #db2777;
+}
+
+.typePool {
+  background: #ccfbf1;
+  color: #0d9488;
+}
+
+/* ===== Health dot ===== */
+.healthDot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 5px;
+}
+
+.healthHealthy {
+  background: #22c55e;
+}
+
+.healthDegraded {
+  background: #f59e0b;
+}
+
+.healthUnhealthy {
+  background: #ef4444;
+}
+
+/* ===== Action buttons ===== */
+.actionBtns {
+  display: flex;
+  gap: 6px;
+}
+
+.actionBtn {
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  background: #fff;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.actionBtn:hover {
+  background: #f9fafb;
+  border-color: #9ca3af;
+}
+
+.actionBtnDanger {
+  composes: actionBtn;
+  color: #dc2626;
+  border-color: #fecaca;
+}
+
+.actionBtnDanger:hover {
+  background: #fef2f2;
+}
+
+/* ===== Card Grid ===== */
+.cardGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: box-shadow 0.15s;
+}
+
+.card:hover {
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cardName {
+  font-size: 15px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.cardMeta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.cardField {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.cardFieldValue {
+  display: block;
+  font-size: 13px;
+  color: #111827;
+  font-weight: 500;
+  margin-top: 2px;
+}
+
+.cardActions {
+  display: flex;
+  gap: 8px;
+  padding-top: 4px;
+  border-top: 1px solid #f3f4f6;
+}
+
+/* ===== Channel expand ===== */
+.channelRow {
+  cursor: pointer;
+}
+
+.channelRow:hover td {
+  background: #f9fafb;
+}
+
+.expandedRow td {
+  padding: 0;
+}
+
+.expandedContent {
+  padding: 12px 24px 16px;
+  background: #fafbfc;
+  border-top: 1px solid #e5e7eb;
+}
+
+.expandedTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 8px;
+}
+
+.noSources {
+  font-size: 13px;
+  color: #9ca3af;
+  padding: 8px 0;
+}
+
+.sourceMiniList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sourceMiniItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.sourceMiniName {
+  font-weight: 500;
+  color: #111827;
+}
+
+.sourceMiniMeta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #6b7280;
+}
+
+/* ===== Empty state ===== */
+.empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: #9ca3af;
+  font-size: 14px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+}
+
+/* ===== Loading ===== */
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+/* ===== Error ===== */
+.errorBanner {
+  padding: 12px 16px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  color: #dc2626;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.retryBtn {
+  padding: 4px 12px;
+  background: #fff;
+  border: 1px solid #fecaca;
+  border-radius: 4px;
+  color: #dc2626;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+/* ===== Pagination ===== */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 0;
+}
+
+.pageBtn {
+  padding: 6px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #fff;
+  color: #374151;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.pageBtn:hover {
+  background: #f3f4f6;
+}
+
+.pageBtn:disabled {
+  color: #d1d5db;
+  cursor: not-allowed;
+}
+
+.pageBtnActive {
+  composes: pageBtn;
+  background: #4f46e5;
+  color: #fff;
+  border-color: #4f46e5;
+}
+
+.pageInfo {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+/* ===== Inline add form for channels ===== */
+.inlineForm {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.inlineInput {
+  padding: 6px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #111827;
+  outline: none;
+  flex: 1;
+  min-width: 120px;
+}
+
+.inlineInput:focus {
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+.inlineConfirm {
+  padding: 6px 14px;
+  background: #4f46e5;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.inlineConfirm:hover {
+  background: #4338ca;
+}
+
+.inlineConfirm:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+.toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  z-index: 2000;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.toastSuccess {
+  composes: toast;
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.toastError {
+  composes: toast;
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 640px) {
+  .toolbar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .toolbarLeft {
+    width: 100%;
+  }
+
+  .tableWrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .cardGrid {
+    grid-template-columns: 1fr;
+  }
+}

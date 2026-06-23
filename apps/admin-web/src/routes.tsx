@@ -5,6 +5,7 @@ const DashboardPage = lazy(() => import('@/pages/DashboardPage'));
 const UsersPage = lazy(() => import('@/pages/UsersPage'));
 const APIKeysPage = lazy(() => import('@/pages/APIKeysPage'));
 const ChannelsPage = lazy(() => import('@/pages/ChannelsPage'));
+const ModelsPage = lazy(() => import('@/pages/ModelsPage'));
 const BillingPage = lazy(() => import('@/pages/BillingPage'));
 const SecurityPage = lazy(() => import('@/pages/SecurityPage'));
 const SupportPage = lazy(() => import('@/pages/SupportPage'));
@@ -42,6 +43,12 @@ const channelsRoute = createRoute({
   component: ChannelsPage,
 });
 
+const modelsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/models',
+  component: ModelsPage,
+});
+
 const billingRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/billing',
@@ -66,6 +73,7 @@ const routeTree = rootRoute.addChildren([
   usersRoute,
   apiKeysRoute,
   channelsRoute,
+  modelsRoute,
   billingRoute,
   securityRoute,
   supportRoute,
@@ -78,6 +86,7 @@ export const adminNavItems = [
   { path: '/users', label: '用户与组织' },
   { path: '/api-keys', label: 'API 与模型' },
   { path: '/channels', label: '渠道管理' },
+  { path: '/models', label: '模型管理' },
   { path: '/billing', label: '计费财务' },
   { path: '/security', label: '运营安全' },
   { path: '/support', label: '客服工单' },

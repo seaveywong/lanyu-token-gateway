@@ -7,7 +7,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -16,14 +15,22 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
+	chimw "github.com/go-chi/chi/v5/middleware"
+
 	"github.com/seaveywong/lanyu-token-gateway/apps/data-plane/internal/database"
+	"github.com/seaveywong/lanyu-token-gateway/apps/data-plane/internal/handler"
+	"github.com/seaveywong/lanyu-token-gateway/apps/data-plane/internal/middleware"
+	"github.com/seaveywong/lanyu-token-gateway/apps/data-plane/internal/provider"
+	"github.com/seaveywong/lanyu-token-gateway/apps/data-plane/internal/provider/anthropic"
+	"github.com/seaveywong/lanyu-token-gateway/apps/data-plane/internal/provider/gemini"
+	"github.com/seaveywong/lanyu-token-gateway/apps/data-plane/internal/provider/openai"
+	"github.com/seaveywong/lanyu-token-gateway/apps/data-plane/internal/repository"
 	"github.com/seaveywong/lanyu-token-gateway/packages/config"
 	"github.com/seaveywong/lanyu-token-gateway/packages/observability"
 )
 
 func main() {
-	// --- Load configuration ---
+	// --- 1. Load configuration ---
 	cfg, err := config.Load("config.yaml")
 	if err != nil {
 		slog.Error("failed to load config", slog.String("error", err.Error()))
@@ -34,8 +41,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	// --- Initialize observability ---
-	ctx := context.Background()
+	// --- 2. Initialize observability ---
 	obsCfg := observability.ObservabilityConfig{
 		ServiceName:    cfg.Observability.ServiceName,
 		ServiceVersion: cfg.Observability.ServiceVersion,
@@ -43,21 +49,21 @@ func main() {
 		LogLevel:       cfg.Observability.LogLevel,
 		LogFormat:      cfg.Observability.LogFormat,
 	}
-	shutdown, err := observability.Init(ctx, obsCfg)
+	obsShutdown, err := observability.Init(context.Background(), obsCfg)
 	if err != nil {
 		slog.Error("failed to initialize observability", slog.String("error", err.Error()))
 		os.Exit(1)
 	}
 	defer func() {
-		if err := shutdown(ctx); err != nil {
+		if err := obsShutdown(context.Background()); err != nil {
 			slog.Error("observability shutdown error", slog.String("error", err.Error()))
 		}
 	}()
 
 	logger := observability.Logger()
 
-	// --- Initialize database connections ---
-	db, err := database.New(ctx, *cfg)
+	// --- 3. Initialize database connections ---
+	db, err := database.New(context.Background(), *cfg)
 	if err != nil {
 		logger.Error("failed to initialize database", slog.String("error", err.Error()))
 		os.Exit(1)
@@ -66,31 +72,79 @@ func main() {
 
 	logger.Info("database connections established")
 
-	// --- Build HTTP router ---
+	// --- 4. Initialize repositories ---
+	apiKeyRepo := repository.NewAPIKeyRepo(db.Pool)
+	sourceRepo := repository.NewSourceRepo(db.Pool)
+	usageRepo := repository.NewUsageRepo(db.Pool)
+
+	// --- 5. Initialize provider registry and register adapters ---
+	reg := provider.NewRegistry()
+
+	// Register OpenAI adapter
+	openaiAdapter := openai.NewAdapter("")
+	if err := reg.Register(openaiAdapter); err != nil {
+		logger.Error("failed to register OpenAI adapter", slog.String("error", err.Error()))
+		os.Exit(1)
+	}
+	logger.Info("registered OpenAI adapter")
+
+	// Register Anthropic adapter
+	anthropicAdapter := anthropic.NewAdapter("")
+	if err := reg.Register(anthropicAdapter); err != nil {
+		logger.Error("failed to register Anthropic adapter", slog.String("error", err.Error()))
+		os.Exit(1)
+	}
+	logger.Info("registered Anthropic adapter")
+
+	// Register Gemini adapter
+	geminiAdapter := gemini.NewAdapter("")
+	if err := reg.Register(geminiAdapter); err != nil {
+		logger.Error("failed to register Gemini adapter", slog.String("error", err.Error()))
+		os.Exit(1)
+	}
+	logger.Info("registered Gemini adapter")
+
+	// --- 6. Initialize middleware ---
+	// TODO: Load pepper from KMS/secure file. For now use placeholder.
+	pepper := []byte("placeholder-pepper")
+
+	authMiddleware := middleware.NewAuthMiddleware(apiKeyRepo, pepper)
+	rateLimiter := middleware.NewRateLimiter(db.Redis)
+
+	// --- 7. Initialize handlers ---
+	modelsHandler := handler.NewModelsHandler()
+	chatHandler := handler.NewChatHandler(reg, sourceRepo, usageRepo)
+	embeddingsHandler := handler.NewEmbeddingsHandler(reg, sourceRepo, usageRepo)
+
+	// --- 8. Build chi router ---
 	r := chi.NewRouter()
-	r.Use(middleware.RequestID)
-	r.Use(middleware.RealIP)
-	r.Use(middleware.Logger)
-	r.Use(middleware.Recoverer)
 
-	// Health check
-	r.Get("/health", healthHandler)
+	// Global middleware
+	r.Use(chimw.RealIP)
+	r.Use(chimw.Logger)
+	r.Use(chimw.Recoverer)
+	r.Use(middleware.RequestIDMiddleware)
 
-	// API v1 routes (placeholder — will be wired in later tasks)
-	r.Route("/v1", func(r chi.Router) {
-		r.Get("/models", func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusOK)
-			fmt.Fprint(w, `{"object":"list","data":[]}`)
-		})
-		r.Post("/chat/completions", func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusNotImplemented)
-			fmt.Fprint(w, `{"error":"not yet implemented"}`)
+	// Public routes
+	r.Get("/health", handler.HealthHandler)
+
+	// Authenticated routes
+	r.Group(func(r chi.Router) {
+		r.Use(authMiddleware.Authenticate)
+
+		// Model listing
+		r.Get("/v1/models", modelsHandler.ListModels)
+
+		// Chat completions (with rate limiting)
+		r.Group(func(r chi.Router) {
+			r.Use(rateLimiter.Limit)
+
+			r.Post("/v1/chat/completions", chatHandler.CreateChatCompletion)
+			r.Post("/v1/embeddings", embeddingsHandler.CreateEmbedding)
 		})
 	})
 
-	// --- Start HTTP server ---
+	// --- 9. Start HTTP server with graceful shutdown ---
 	addr := cfg.Server.Host + ":" + cfg.Server.Port
 	srv := &http.Server{
 		Addr:         addr,
@@ -100,7 +154,7 @@ func main() {
 		IdleTimeout:  120 * time.Second,
 	}
 
-	// Graceful shutdown on SIGINT/SIGTERM.
+	// Graceful shutdown on SIGINT/SIGTERM
 	idleConnsClosed := make(chan struct{})
 	go func() {
 		sigCh := make(chan os.Signal, 1)
@@ -125,11 +179,4 @@ func main() {
 
 	<-idleConnsClosed
 	logger.Info("data-plane stopped")
-}
-
-// healthHandler returns a simple health-check response.
-func healthHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	fmt.Fprint(w, `{"status":"ok","service":"data-plane"}`)
 }
