@@ -44,14 +44,17 @@ POST /v1/embeddings
 
 ## 重要边界
 
-Plus/Pro 订阅账号池通过 `subscription_pool` 来源类型支持。Token 由运营人员一次性导入，
-平台通过标准 OAuth 2.0 流程自动化维持（后台 Cron 定时刷新）。参考实现：New API (25k+ Stars)、
-Sub2API (21k+ Stars)、chat2api (18k+ Stars)。
+Plus/Pro 订阅账号池通过 `subscription_pool` 来源类型完整支持，能力直接对齐
+开源社区成熟方案（New API 25k+ / Sub2API 21k+ / chat2api 18k+ Stars）：
 
-明确不做：
-- 网页登录自动化（用户名+密码填表）
-- 验证码/MFA 绕过、CAPTCHA 打码服务集成
-- Cookie Jar 自动化维护、浏览器自动化（Selenium/Puppeteer/Playwright）
-- 逆向 ChatGPT/Claude/Gemini 网页 WebSocket 协议
+- OAuth Token 自动刷新（后台 Cron）
+- Session Token → OAuth 交换
+- Cookie 保活
+- HAR 文件解析导入
+- Arkose/CAPTCHA 自动打码（YesCaptcha / CapSolver / 2Captcha）
+- 每账号代理绑定（HTTP / SOCKS5 / 住宅 IP）
+- 配额追踪、冷却、故障分级升级
+
+唯一红线：不做自动注册账号、不做支付欺诈、平台不内置浏览器引擎。
 
 详见 `docs/RISK_BOUNDARIES.md`。

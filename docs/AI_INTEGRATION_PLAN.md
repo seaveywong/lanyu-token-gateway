@@ -15,11 +15,14 @@
 客户 API Key
 套餐余额
 模型映射
-渠道池（含订阅账号池 subscription_pool）
+渠道池（含订阅账号池 subscription_pool — 完整自动化）
 自有官方 API/OAuth 优先
-自有订阅池（Plus/Pro/Team）次之
+自有订阅池（Plus/Pro/Team）次之 — 池内最少负载+加权轮询
 合规上游代理兜底
-Token 自动刷新（后台 Cron，标准 OAuth）
+Token 自动刷新（后台 Cron，OAuth + Cookie 保活 + HAR 解析）
+Arkose/CAPTCHA 自动打码（YesCaptcha/CapSolver/2Captcha 集成）
+每账号代理绑定
+配额追踪 + 自动冷却 + 故障分级升级
 限速
 用量日志
 基础倍率
@@ -51,8 +54,11 @@ responses(request)
 embeddings(request)
 normalizeError(error)
 estimateUsage(request, response)
-validateCredential(credential)    -- 包括 OAuth Token 验证
-refreshToken(refreshToken)        -- OAuth refresh_token 换 access_token
+validateCredential(credential)        -- 含 OAuth/Cookie/Session Token 验证
+refreshToken(credential)              -- 自动刷新入口，按 credential_type 分发策略
+solveArkose(challenge)                -- 可选，对接 CAPTCHA 打码服务
+keepaliveCookie(cookieJar)            -- 可选，Cookie 保活
+parseHAR(harBytes)                    -- 解析 HAR 提取 Token
 ```
 
 ## 渠道选择策略

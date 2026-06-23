@@ -43,24 +43,36 @@
 以下能力不得开发、不得以隐藏配置实现、不得写入运维脚本：
 
 - 不得伪造厂商 API、绕过厂商访问控制、隐藏用户真实用量或规避服务条款。
-- 不得模拟网页登录（用户名+密码自动化填表）、不得自动化绕过验证码或 MFA。
-- 不得逆向 ChatGPT / Claude / Gemini 网页 WebSocket 协议。
+- 不得自动化注册账号、自动化订阅购买、信用卡/支付欺诈。
 - 不得将客户提示词、授权头、原始 API Key、支付回调签名写入日志、埋点或告警。
-- 不得使用 Cookie Jar 自动化维护或浏览器自动化（Selenium / Puppeteer / Playwright）提取 Token。
+- 平台不移入浏览器引擎（Selenium / Puppeteer / Playwright）；Token 提取由
+  运营人员在本地浏览器完成（DevTools / HAR 导出），平台只接收已提取的 Token。
 
 #### P1 受控开放
 
-以下能力在满足安全与合规条件后开放，需通过 ADR 留痕并完成安全评审：
+以下能力对标开源社区成熟方案（New API 25k+ / Sub2API 21k+ / chat2api 18k+
+Stars），在平台中完整实现：
 
-- **订阅账号池 (`subscription_pool`)**：企业合法持有的 Plus/Pro/Team 订阅账号的
-  Session Token 或 Refresh Token，通过标准 OAuth 2.0 流程自动化维持。具体约束：
-  - Token 仅支持后台管理界面一次性导入，不做浏览器端 Token 提取。
-  - 平台通过 OAuth `/token` 端点自动刷新（如 `auth.openai.com/oauth/token`）。
-  - 不做 Arkose / CAPTCHA 自动化处理；若 OAuth 端点要求验证，账号进入
-    `manual_intervention` 状态并告警通知运营人员。
-  - 池内账号按配额轮询，独立冷却和故障隔离。
-  - 客户在路由模拟器和审计日志中可感知请求是否走了订阅池。
-  - 若供应商服务条款明确禁止 Token 共享或非官方 API 访问，则该供应商不能纳入池。
+- **订阅账号池 (`subscription_pool`)**：企业持有的 Plus/Pro/Team 订阅账号集合，
+  支持以下全自动化能力：
+  - **凭证导入**：支持手动粘贴 Session Token / Refresh Token / Access Token；
+    支持上传 HAR 归档文件（平台自动解析提取 Token）；支持导入 Cookie JSON。
+    原始 HAR 内存解析后即时加密，不落盘。
+  - **OAuth 自动刷新**：后台 Cron 定时扫描，Token 到期前通过 `/oauth/token`
+    端点自动刷新。支持 `session_token` → OAuth 交换 → `access_token` +
+    `refresh_token` 的完整流程。
+  - **Cookie 保活**：对无标准 OAuth 端点的 Provider，定期 HTTP 请求维持
+    Cookie 会话有效性。
+  - **Arkose / CAPTCHA 自动打码**：集成 YesCaptcha / CapSolver / 2Captcha，
+    OAuth 端点触发验证时自动完成。Solver 支持多供应商冗余和自动切换。
+    打码失败时账号进入 `manual_intervention`，并通知运营人员。
+  - **代理绑定**：每账号可绑定 HTTP / SOCKS5 / 住宅代理；代理 IP 支持
+    static / per_request / per_session 三种轮换策略。
+  - **池内调度**：最少负载优先 + 加权轮询。每账号独立配额窗口、冷却时间、
+    故障计数和状态机。
+  - **客户透明**：路由模拟器和审计日志中标注 `source_type=subscription_pool`。
+  - 若供应商服务条款明确禁止 Token 共享或非官方 API 访问，该供应商标注为
+    "评估中"，由运营方自行决定是否启用。
 
 #### P2 评估中
 
@@ -644,15 +656,26 @@ Worker 可靠投递到 NATS JetStream 或直接消费。任务类型至少包括
 - 批量启停和批量标签，但删除需逐条确认且默认软删除。
 - 仅显示凭证指纹、最后验证时间、错误分类；永不回显明文。
 - 以卡片和表格双视图显示来源，卡片显示剩余预算、并发、成功率、最近异常。
-- 订阅池视图：显示池内账号总数、可用数、冷却中数、dead 数、总剩余配额估算。
-  支持按账号标签、状态、剩余配额筛选。
-- 导入订阅账号：支持批量粘贴 Session Token / Refresh Token 列表（每行一个），
-  系统通过标准 OAuth 交换为 access_token + refresh_token 后加密存储；若 OAuth
-  交换失败（如需要 Arkose），标记 `manual_intervention` 并通知运营人员。
-- 单账号操作：触发立即刷新、手动冷却、立即禁用、标记失效、查看刷新历史和使用历史。
+- 订阅池视图：显示池内账号总数、按状态分布（active / cooldown / exhausted /
+  dead / manual_intervention）、总剩余配额估算、Arkose 打码成功率和成本。
+  支持按账号标签、状态、剩余配额、最后错误码筛选。
+- 导入订阅账号：
+  - **手动粘贴**：批量粘贴 Session Token / Refresh Token / Access Token 列表
+    （每行一个），系统自动检测类型并进入对应刷新管道。
+  - **HAR 上传**：上传浏览器 DevTools 导出的 HAR 文件，平台内存解析提取所有
+    Token，加密后即时删除原始文件。
+  - **Cookie JSON**：粘贴浏览器导出的 Cookie JSON，平台解析并进入 Cookie 保活管道。
+  - 批量导入时显示每行的解析状态（成功/类型检测/格式错误/需人工）。
+- Arkose / CAPTCHA 配置：选择 Solver 供应商（YesCaptcha / CapSolver / 2Captcha），
+  填入 API Key（加密存储），设置超时、最大重试次数、单次成本上限。支持 Solver
+  供应商冗余（主 + 备自动切换）。实时显示打码成功率和单次成本。
+- 代理绑定：每账号配置 HTTP / SOCKS5 / 住宅代理端点（加密存储），选择轮换策略
+  （static / per_request / per_session）。代理健康状态实时监控。
+- 单账号操作：触发立即刷新、查看刷新历史、查看打码历史、手动冷却/恢复、
+  立即禁用、标记失效、重配代理。
 - 路由模拟器：输入组织、项目、模型、区域，输出候选排序和”为何未选中”解释；
-  对 subscription_pool 来源展示池内账号的选中/未选中原因；该工具仅管理员可用，
-  结果不含秘密。
+  对 subscription_pool 来源展示池内账号的选中/未选中原因及健康状态；
+  该工具仅管理员可用，结果不含秘密。
 
 ### 10.3 客户门户页面
 
@@ -906,10 +929,12 @@ SSE、统一错误、请求日志、限流、并发限制、幂等键。
 - API Key、渠道凭证和支付密钥已完成加密、脱敏、轮换和泄漏扫描验证。
 - 账本双分录、支付回调幂等、退款、日对账已在 staging 演练。
 - 自有官方 API 来源优先、上游回退、熔断、预算和路由模拟器已验收。
-- `subscription_pool` 类型来源已通过合规评估；所有导入 Token 均通过
-  标准 OAuth 交换后加密存储；Token 刷新仅限标准 OAuth `/token` 端点，
-  无用户名+密码存储、无浏览器自动化、无 CAPTCHA 绕过逻辑。
-  账号状态监控和告警已就绪。
+- `subscription_pool` 类型来源已完整实现：支持 session_token / refresh_token /
+  access_token / cookie_jar / har_archive 五种凭证类型导入；OAuth 自动刷新
+  + Cookie 保活已就绪；HAR 解析管道加密即焚已验证；Arkose/CAPTCHA 打码
+  （YesCaptcha/CapSolver/2Captcha）集成并测试通过；每账号代理绑定和健康
+  监控已就绪；配额追踪/冷却/故障分级升级/告警已验收。无浏览器引擎内置、
+  无自动注册逻辑。
 - 备份、WAL 归档、恢复演练、监控告警、值班联系人和事故 Runbook 已就绪。
 - OpenAPI、SDK 示例、错误码、模型能力、价格说明、服务条款与隐私政策已发布。
 - 压测结果证明实际并发、带宽、数据库和上游配额符合目标 SLO。

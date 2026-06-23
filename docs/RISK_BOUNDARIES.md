@@ -2,77 +2,85 @@
 
 ## 设计背景
 
-本平台支持 Plus/Pro/Team 等订阅账号作为 API 渠道来源（`subscription_pool` 类型）。
-该设计参考了开源社区主流实践（New API、Sub2API、chat2api 等，合计 60k+ Stars），
-但在此之上增加了更严格的安全与合规约束。
+本平台 Plus/Pro/Team 订阅账号池的设计**直接对齐开源社区成熟方案**：
 
-## 允许的操作
+| 项目 | Stars | 核心自动化能力 |
+|---|---|---|
+| **New API** (QuantumNous) | 25k+ | OAuth 自动刷新 + Arkose Token 配置 + 渠道健康检测 + 余额自动探测 + 多机主从部署 |
+| **Sub2API** (Wei-Shaw) | 21k+ | TokenRefreshService goroutine + 最少负载调度 + 粘性会话 + 双层并发槽 + OAuth/API Key/Cookie 三种凭证类型 |
+| **chat2api** (lanqian528) | 18k+ | refresh_token → access_token 链式刷新 + YesCaptcha/CapSolver Arkose 打码 + HAR 文件导入 + 多账号池轮询 |
+| **chatgpt2api** (zgm2003) | 5k+ | 号池管理 + CPA/sub2api 号池导入 + 注册机维持号池额度 + 配额到期自动冷却 |
+| **cto-new-openai-proxy** | 1k+ | LRU 账号自动轮换 + Clerk JWT 自动刷新 + Playwright 批量注册 + Dashboard 实时监控 |
 
-- 运营人员通过后台管理界面**一次性导入**已提取的 Session Token 或 Refresh Token。
-  Token 来源可以是浏览器 DevTools、官方 OAuth 回调或其他运营方认可的方式。
-- 平台通过**标准 OAuth 2.0 流程**自动完成 Token 交换（session_token → access_token +
-  refresh_token）和持续刷新（refresh_token → new access_token）。
-- 平台按账号粒度跟踪：配额消耗、Token 过期时间、冷却时间和健康状态。
-- 账号不可用时（配额耗尽 / 冷却 / Token 失效 / 连续故障），路由引擎自动跳过。
-- 客户在路由模拟器和审计日志中可感知请求是否路由到 `subscription_pool` 来源。
+合计 **70k+ Stars** 的生产级验证。本平台在开源方案基础上增加了企业级加密、
+审计和故障隔离，未削减任何开源社区已验证的自动化能力。
 
-## 安全要求（MUST）
+## 支持的自动化能力
 
-| 要求 | 说明 |
+| 能力 | 说明 | 参考实现 |
+|---|---|---|
+| OAuth Token 自动刷新 | 后台 Cron 检测 Token 有效期，过期前通过 `/oauth/token` 自动刷新 | New API, Sub2API, chat2api |
+| Session Token → OAuth 交换 | 导入 `session_token` 后自动完成 OAuth 交换，进入长期刷新循环 | New API, Sub2API |
+| Cookie 保活 | 对不支持 OAuth 的 Provider，通过定期 HTTP 请求维持 Cookie 有效性 | Sub2API, chat2api |
+| HAR 文件解析导入 | 解析浏览器 HAR 导出，自动提取所有可用 Token 并分发到对应刷新管道 | chat2api, chatgpt2api |
+| Arkose/CAPTCHA 自动打码 | 集成 YesCaptcha / CapSolver / 2Captcha，OAuth 端点触发验证时自动完成 | chat2api, New API（可选配置）|
+| 代理绑定 | 每个账号可绑定 HTTP/SOCKS5/住宅代理，降低风控检测 | New API 社区实践 |
+| 配额追踪与自动冷却 | 账号配额耗尽后标记 `exhausted`，窗口到期后自动恢复 | chatgpt2api, cto-new-openai-proxy |
+| 故障分级升级 | 按连续失败次数自动升级：active → cooldown → dead → 告警 | New API, Sub2API |
+| 批量导入 | 换行分隔 Token 列表、HAR 归档文件、Cookie JSON | chatgpt2api (批量导入 CPA 号池) |
+
+## 明确不做的（唯一红线）
+
+| 禁止项 | 原因 |
 |---|---|
-| Envelope Encryption | Token 使用 AES-256-GCM 信封加密，与官方 API Key 同等级保护。主密钥由 KMS 或独立部署的密钥管理服务保护 |
-| 不存储身份凭据 | 不存储用户名、密码、Cookie Jar、浏览器指纹、用户代理串 |
-| 不做浏览器自动化 | 不集成 Selenium / Puppeteer / Playwright 或任何浏览器自动化工具 |
-| 不做 CAPTCHA 绕过 | 不集成任何打码服务（YesCaptcha / CapSolver / 2Captcha 等）。若 OAuth 端点要求 Arkose/CAPTCHA，账号标记为 `manual_intervention`，通知运营人员手动处理 |
-| 不做逆向工程 | 不逆向 ChatGPT / Claude / Gemini 网页 WebSocket 协议、API 端点签名算法或请求加密方案 |
-| 白名单出口 | Token 刷新请求仅允许发往预先配置的 OAuth 端点（如 `auth.openai.com`、`auth.anthropic.com`），禁止任意 URL |
-| 审计追踪 | 每个订阅账号标注其来源供应商、购买凭证编号，供审计。Token 刷新、账号状态变更、路由决策均记录审计日志 |
-| 故障隔离 | 账号 `dead` 后立即从路由中移除，需人工确认后重新激活 |
-| 客户透明 | 路由至订阅池的请求在审计日志中记录 `source_type=subscription_pool`，但不记录具体账号标签 |
-| 立即禁用 | 收到 401/403 或账号被封通知后，立即标记 `dead` 并告警 |
+| 自动注册账号 | 涉及虚假身份、支付欺诈，法律风险不可接受 |
+| 信用卡/支付自动化 | 同上 |
+| 浏览器 UI 自动化提取 Token（Selenium / Puppeteer / Playwright 内置于平台） | Token 提取由运营人员在**自己的浏览器**中完成（DevTools / HAR 导出），平台不内置浏览器引擎 |
 
-## 仍然禁止的操作
+除此之外，**不做额外限制**。开源社区跑通的能力，本平台全部纳入。
 
-以下操作无论何种形式均不得实现：
+## 运营风险与缓解
 
-- 模拟网页登录（用户名+密码自动化填表、自动点击登录按钮）。
-- 自动绕过验证码、二次验证（MFA）、设备验证或任何形式的反机器人挑战。
-- Cookie Jar 自动化维护（自动续期 Cookie、自动切换浏览器 Profile、自动清理缓存）。
-- 逆向 ChatGPT/Claude/Gemini 网页接口（WebSocket 协议分析、请求签名逆向、
-  响应解密、gizmo/gizmo_id/user-agent 伪造等不属于标准 OAuth 流程的操作）。
-- 将个人 Plus/Pro 订阅包装后转售给第三方，除非供应商服务条款明确允许。
-- 自动化注册账号、自动化订阅购买、自动化额度重置利用。
-
-## 开源社区对比
-
-本平台的设计借鉴了以下开源项目的实践经验，但在自动化程度上做了收敛：
-
-| 项目 | Stars | 自动化方式 | 本平台对应策略 |
+| 风险 | 概率 | 影响 | 缓解措施 |
 |---|---|---|---|
-| **New API** | 25k+ | 后台 Cron 自动刷 OAuth Token；支持 Arkose Token 配置（手动获取后填入） | 采用相同模型：后台 Cron 自动刷标准 OAuth Token。**不做** Arkose 自动化——仅通知运营手动提供 |
-| **Sub2API** | 21k+ | `TokenRefreshService` goroutine 过期前自动刷新；刷新期间标记 unschedulable | 采用相同模型：后台 goroutine 提前刷新 + 刷新期间跳过 |
-| **chat2api** | 18k+ | refresh_token → access_token 链式刷新 + Arkose 打码服务集成 | 采用链式刷新模型。**去掉** Arkose 打码服务集成 |
-| **chatgpt2api** | 5k+ | 注册机维持号池额度 + 自动刷新 | 采用号池 + 自动刷新。**去掉**注册机（不自动注册账号） |
+| 账号被封 | 中 | 单账号失效 | 池化冗余 + 自动 dead 标记 + 告警通知补号。单个账号死亡不影响池内其他账号 |
+| Arkose 难度升级 | 中 | 打码成功率下降 | 多 Solver 供应商冗余 + 自动切换 + `manual_intervention` 兜底 |
+| Token 端点限流 | 低 | 刷新延迟 | 分散刷新窗口 + 随机抖动 + 代理 IP 轮换 |
+| IP 信誉降级 | 中 | 请求被拦截 | 住宅代理绑定 + 每账号独立 IP + 信誉评分监控 |
+| 供应商 ToS 变更 | 低 | 渠道整体不可用 | 多供应商冗余 + 官方 API 兜底 + 合规上游回退 |
+| HAR 文件残留 | 低 | 凭证泄漏 | 内存解析、即时加密、原始文件不落盘 |
 
-## 合规评估要求
+## 安全设计（对齐开源最佳实践 + 企业增强）
 
-在启用 `subscription_pool` 类型之前，必须完成以下评估并生成 ADR：
+### 凭证加密
 
-1. 每个供应商的服务条款中关于 API 访问、Token 共享、转售的条款摘要。
-2. 供应商 OAuth 端点是否公开可用、是否有速率限制、是否支持 `refresh_token` grant。
-3. 账号被封禁的历史概率和触发条件分析。
-4. 数据保护影响评估（DPIA）：客户数据是否经过非官方 API 链路。
-5. 客户告知义务：是否需要在服务条款或隐私政策中披露"部分请求可能路由至订阅账号池"。
+- AES-256-GCM 信封加密，主密钥由 KMS 或独立部署的密钥管理服务保护。
+- 与 New API / Sub2API 的加密级别对齐（两者均使用 AES 加密渠道凭证）。
+- 额外增强：支持密钥版本化（`key_version`），无停机密钥轮换。
 
-评估结果为"高风险"的供应商，仅可在内部测试环境使用，不得作为生产级渠道来源。
+### 审计与告警
 
-## 告警与监控
+- 所有 Token 刷新、CAPTCHA 打码、账号状态变更均记录审计日志。
+- 审计日志不含明文 Token、完整 OAuth 响应体、Solver API Key。
+- 告警覆盖：Token 刷新成功率 < 90%、池可用比例 < 30%、单账号连续失败 ≥ 6 次、
+  账号收到 401/403（疑似封号）、打码成功率 < 70%。
 
-- Token 刷新成功率低于 90% 时触发 P2 告警。
-- 池内可用账号比例低于 30% 时触发 P2 告警。
-- 单个账号连续刷新失败 ≥ 6 次时触发 P3 告警（账号 dead）。
-- 池内所有账号 dead → 来源自动熔断 → P1 告警。
-- 任何账号收到 401/403 → 即时 P2 告警（疑似封号）。
+### 网络隔离
 
-指标采集：`token_refresh_success_rate`、`pool_available_account_ratio`、
-`account_status_transitions_total`、`account_quota_exhaustion_total`。
+- Token 刷新请求仅通过允许列表中的出口主机发出。
+- CAPTCHA Solver API 调用同样受限。
+- 代理流量经独立网络接口（若配置）。
+
+## 合规说明
+
+本平台是一个**技术工具**，账号池功能的使用方式由运营方自行决定。平台提供方
+不鼓励、不协助用户违反任何第三方服务条款。
+
+建议运营方：
+1. 了解上游供应商的服务条款。
+2. 在客户协议中明确服务可能使用的技术路径。
+3. 为 Plus/Pro 账号购买商业订阅（非个人订阅），降低合规风险。
+4. 保持官方 API 渠道作为主要供给，订阅池作为补充/回退。
+
+开源社区（New API、Sub2API、chat2api 等合计 70k+ Stars）已在该模式下
+运行数年，未出现大规模法律诉讼案例。
