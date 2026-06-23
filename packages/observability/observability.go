@@ -7,7 +7,9 @@ import (
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/metric/noop"
 	"go.opentelemetry.io/otel/trace"
+	tracenoop "go.opentelemetry.io/otel/trace/noop"
 )
 
 // ObservabilityConfig holds the configuration for initializing observability
@@ -66,11 +68,11 @@ func Init(ctx context.Context, cfg ObservabilityConfig) (shutdown func(context.C
 	// --- Trace provider (placeholder) ---
 	// In production this would create an OTLP gRPC/HTTP exporter.
 	// For now we set a no-op provider; real wiring is added with dependencies.
-	globalTP = trace.NewNoopTracerProvider()
+	globalTP = tracenoop.NewTracerProvider()
 	otel.SetTracerProvider(globalTP)
 
 	// --- Meter provider (placeholder) ---
-	globalMP = metric.NewNoopMeterProvider()
+	globalMP = noop.NewMeterProvider()
 	otel.SetMeterProvider(globalMP)
 
 	globalLogger.InfoContext(ctx, "observability initialized",
@@ -118,7 +120,7 @@ func Reset() {
 	globalTP = nil
 	globalMP = nil
 	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, nil)))
-	otel.SetTracerProvider(trace.NewNoopTracerProvider())
-	otel.SetMeterProvider(metric.NewNoopMeterProvider())
+	otel.SetTracerProvider(tracenoop.NewTracerProvider())
+	otel.SetMeterProvider(noop.NewMeterProvider())
 }
 
