@@ -34,18 +34,52 @@
 - 对工程：通过适配器支持 OpenAI、Anthropic、Google Gemini 等热门厂商，避免业务层
   被任何单一厂商协议锁死。
 
-### 1.2 明确不做的能力
+### 1.2 能力边界与风险分级
+
+平台能力按风险等级分为三级管理：
+
+#### P0 严格禁止
 
 以下能力不得开发、不得以隐藏配置实现、不得写入运维脚本：
 
-- 不使用个人 ChatGPT Plus/Pro 或同类网页订阅的用户名、密码、Cookie、浏览器会话、
-  Refresh Token 作为 API 渠道。
-- 不做网页登录自动化、验证码或 MFA 绕过、会话续期、共享账号轮询、订阅账号转售。
-- 不伪造厂商 API、绕过厂商访问控制、隐藏用户真实用量或规避服务条款。
-- 不把客户提示词、授权头、原始 API Key、支付回调签名写入日志、埋点或告警。
+- 不得伪造厂商 API、绕过厂商访问控制、隐藏用户真实用量或规避服务条款。
+- 不得模拟网页登录（用户名+密码自动化填表）、不得自动化绕过验证码或 MFA。
+- 不得逆向 ChatGPT / Claude / Gemini 网页 WebSocket 协议。
+- 不得将客户提示词、授权头、原始 API Key、支付回调签名写入日志、埋点或告警。
+- 不得使用 Cookie Jar 自动化维护或浏览器自动化（Selenium / Puppeteer / Playwright）提取 Token。
 
-“自有号池”在本项目中仅表示：企业合法持有且厂商允许用于 API 调用的官方 API
-项目密钥、服务账号或官方 OAuth 授权。若供应商没有正式 API 授权渠道，则不能纳入池。
+#### P1 受控开放
+
+以下能力在满足安全与合规条件后开放，需通过 ADR 留痕并完成安全评审：
+
+- **订阅账号池 (`subscription_pool`)**：企业合法持有的 Plus/Pro/Team 订阅账号的
+  Session Token 或 Refresh Token，通过标准 OAuth 2.0 流程自动化维持。具体约束：
+  - Token 仅支持后台管理界面一次性导入，不做浏览器端 Token 提取。
+  - 平台通过 OAuth `/token` 端点自动刷新（如 `auth.openai.com/oauth/token`）。
+  - 不做 Arkose / CAPTCHA 自动化处理；若 OAuth 端点要求验证，账号进入
+    `manual_intervention` 状态并告警通知运营人员。
+  - 池内账号按配额轮询，独立冷却和故障隔离。
+  - 客户在路由模拟器和审计日志中可感知请求是否走了订阅池。
+  - 若供应商服务条款明确禁止 Token 共享或非官方 API 访问，则该供应商不能纳入池。
+
+#### P2 评估中
+
+以下能力仅做合规评估文档，不进入当前开发规划：
+
+- 用户自有 Key 托管（BYOK）：客户将个人 API Key 托管到平台。
+- OAuth 设备码流：客户通过设备码授权平台访问其订阅资源。
+
+---
+
+“自有号池”在本项目中表示：
+
+- 企业合法持有的官方 API 项目密钥、服务账号或官方 OAuth 授权；
+- 企业合法持有的 Plus/Pro/Team 订阅账号的 Session/Refresh Token
+  （作为 `subscription_pool` 类型管理，通过标准 OAuth 自动刷新）；
+- 通过正式合同获取的合规上游 API 接口。
+
+若某供应商没有正式 API 授权渠道且其服务条款明确禁止 Token 共享或非官方
+API 访问，则该供应商不能纳入池。
 
 ### 1.3 域名与前后端分离
 
@@ -106,7 +140,8 @@
 
 ### 2.4 运营主流程
 
-1. 管理员创建“账号来源”（官方 API Key、官方 OAuth、合规上游 API）。
+1. 管理员创建”账号来源”（官方 API Key、官方 OAuth、订阅账号池、合规上游 API）。
+   订阅池需导入 Session/Refresh Token，平台自动完成 OAuth 交换和持续刷新。
 2. 运营人员验证来源，绑定可用模型、区域、成本和预算。
 3. 运营人员将来源加入渠道，设定优先级、权重、并发、熔断与回退策略。
 4. 管理员维护平台模型目录和对外模型别名。
@@ -309,7 +344,13 @@ GenerationRequest
 ### 5.1 实体定义
 
 - `provider`：厂商类型，例如 OpenAI、Anthropic、Gemini、Bedrock。
-- `account_source`：一组合法凭证或官方授权，详情见 `ACCOUNT_SOURCE_ENTRY.md`。
+- `account_source`：一组合法凭证或授权，类型包括：
+  - `official_api_key`：官方 API 项目密钥。
+  - `official_oauth`：官方 OAuth 授权。
+  - `upstream_api`：合规上游 API。
+  - `subscription_pool`：订阅账号池（Plus/Pro/Team），多个订阅账号的
+    Session/Refresh Token 集合，通过标准 OAuth 自动刷新维持。
+  详情见 `ACCOUNT_SOURCE_ENTRY.md`。
 - `channel`：一个可被路由的逻辑渠道，可包含一个或多个账号来源。
 - `model_catalog`：平台规范模型目录，含能力、输入/输出限制、模态与版本。
 - `model_mapping`：外部模型别名到渠道原生模型名的映射。
@@ -343,11 +384,15 @@ type ProviderAdapter interface {
 1. 验证 API Key、项目状态、模型权限、速率、并发、余额和预算。
 2. 解析外部模型别名，得到可用渠道候选集。
 3. 过滤禁用、过期、超预算、健康异常、区域不匹配、并发耗尽的来源。
-4. 优先选择自有官方来源。
-5. 在同优先级来源中按“优先级、剩余预算、健康分、并发余量、成本、权重”排序。
-6. 自有来源无可用候选时，才选择已批准的合规上游来源。
-7. 在安全条件满足时执行一次回退；记录完整内部路由决策。
-8. 根据实际输入/输出 Token 或上游账单数据完成结算。
+4. 优先选择自有官方来源（`official_api_key`、`official_oauth`）。
+5. 自有订阅池（`subscription_pool`）在同优先级中排在官方 API/OAuth 之后，
+   但在上游代理之前。选择池内当前配额可用、未冷却、状态为 active 的账号；
+   池内账号按”最少负载优先 + 加权轮询”选取。若池内无可用账号，该池视为
+   不可用，进入下一候选。
+6. 在同优先级来源中按”优先级、剩余预算、健康分、并发余量、成本、权重”排序。
+7. 自有来源无可用候选时，才选择已批准的合规上游来源（`upstream_api`）。
+8. 在安全条件满足时执行一次回退；记录完整内部路由决策。
+9. 根据实际输入/输出 Token 或上游账单数据完成结算。
 
 路由不得仅使用简单轮询。每个候选来源必须有：
 
@@ -357,6 +402,14 @@ type ProviderAdapter interface {
 - `daily_budget_micro_usd`：来源日成本上限。
 - `failure_threshold`、`cooldown_seconds`：熔断策略。
 - `allowed_models`、`allowed_regions`、`tenant_allowlist`：权限边界。
+
+`subscription_pool` 来源额外拥有账号级路由属性（每行 `subscription_accounts`）：
+
+- `quota_limit_per_window`、`quota_remaining`、`quota_window_seconds`：单账号配额窗口。
+- `cooldown_until`：单账号冷却截止时间。
+- `consecutive_failures`：连续失败次数，用于故障升级。
+- `token_expires_at`：Token 过期时间，触发自动刷新判断。
+- `status`：账号状态（active / cooldown / exhausted / dead / manual_disabled / manual_intervention）。
 
 ### 5.4 健康检查与熔断
 
@@ -470,7 +523,7 @@ type ProviderAdapter interface {
 | --- | --- |
 | 身份与租户 | `users`, `organizations`, `organization_members`, `projects`, `roles`, `sessions`, `mfa_factors` |
 | API 访问 | `api_keys`, `api_key_scopes`, `api_key_ip_rules`, `request_logs`, `usage_events`, `idempotency_records` |
-| 渠道 | `providers`, `account_sources`, `channels`, `channel_sources`, `model_catalog`, `model_mappings`, `route_rules`, `channel_health_events` |
+| 渠道 | `providers`, `account_sources`, `subscription_accounts`, `channels`, `channel_sources`, `model_catalog`, `model_mappings`, `route_rules`, `channel_health_events` |
 | 计费 | `wallets`, `ledger_accounts`, `ledger_entries`, `ledger_postings`, `pricing_versions`, `pricing_rules`, `usage_reservations` |
 | 支付 | `payment_orders`, `payment_webhooks`, `refund_requests`, `reconciliation_runs`, `reconciliation_items` |
 | 运维与安全 | `audit_logs`, `security_events`, `feature_flags`, `system_settings`, `outbox_events`, `webhook_endpoints`, `webhook_deliveries` |
@@ -484,8 +537,23 @@ type ProviderAdapter interface {
 id, name, source_type, provider_id, endpoint_id,
 credential_ciphertext, credential_key_version, credential_fingerprint,
 model_policy_json, priority, weight, max_concurrency,
-daily_budget_micro_usd, status, health_state,
+daily_budget_micro_usd, subscription_accounts_count,
+status, health_state,
 last_validated_at, last_used_at, created_by, created_at, updated_at
+```
+
+`subscription_accounts`（仅 `subscription_pool` 类型使用）：
+
+```text
+id, source_id (FK -> account_sources), account_label,
+credential_type,  -- session_token | refresh_token | access_token
+credential_ciphertext, credential_key_version, credential_fingerprint,
+refresh_ciphertext, refresh_key_version,
+token_expires_at, quota_limit_per_window, quota_remaining,
+quota_window_seconds, cooldown_until, consecutive_failures,
+status,  -- active | cooldown | exhausted | dead | manual_disabled | manual_intervention
+last_used_at, last_refreshed_at, last_error_code, last_error_message,
+created_at, updated_at
 ```
 
 `api_keys`：
@@ -541,7 +609,7 @@ pricing_version_id, status, started_at, completed_at
 Worker 可靠投递到 NATS JetStream 或直接消费。任务类型至少包括：
 
 - 支付到账、退款、对账、余额告警。
-- 渠道健康检查、凭证验证、成本同步、路由缓存失效。
+- 渠道健康检查、凭证验证、Token 自动刷新（subscription pool OAuth）、成本同步、路由缓存失效。
 - 用量聚合、日报、异常毛利告警。
 - Webhook 投递、失败重试、死信处理。
 - 邮件、MFA 通知、工单通知、数据归档。
@@ -576,8 +644,15 @@ Worker 可靠投递到 NATS JetStream 或直接消费。任务类型至少包括
 - 批量启停和批量标签，但删除需逐条确认且默认软删除。
 - 仅显示凭证指纹、最后验证时间、错误分类；永不回显明文。
 - 以卡片和表格双视图显示来源，卡片显示剩余预算、并发、成功率、最近异常。
-- 路由模拟器：输入组织、项目、模型、区域，输出候选排序和“为何未选中”解释；
-  该工具仅管理员可用，结果不含秘密。
+- 订阅池视图：显示池内账号总数、可用数、冷却中数、dead 数、总剩余配额估算。
+  支持按账号标签、状态、剩余配额筛选。
+- 导入订阅账号：支持批量粘贴 Session Token / Refresh Token 列表（每行一个），
+  系统通过标准 OAuth 交换为 access_token + refresh_token 后加密存储；若 OAuth
+  交换失败（如需要 Arkose），标记 `manual_intervention` 并通知运营人员。
+- 单账号操作：触发立即刷新、手动冷却、立即禁用、标记失效、查看刷新历史和使用历史。
+- 路由模拟器：输入组织、项目、模型、区域，输出候选排序和”为何未选中”解释；
+  对 subscription_pool 来源展示池内账号的选中/未选中原因；该工具仅管理员可用，
+  结果不含秘密。
 
 ### 10.3 客户门户页面
 
@@ -831,7 +906,10 @@ SSE、统一错误、请求日志、限流、并发限制、幂等键。
 - API Key、渠道凭证和支付密钥已完成加密、脱敏、轮换和泄漏扫描验证。
 - 账本双分录、支付回调幂等、退款、日对账已在 staging 演练。
 - 自有官方 API 来源优先、上游回退、熔断、预算和路由模拟器已验收。
-- 不含任何个人 Plus/Pro 网页账号、Cookie、浏览器会话或自动化登录逻辑。
+- `subscription_pool` 类型来源已通过合规评估；所有导入 Token 均通过
+  标准 OAuth 交换后加密存储；Token 刷新仅限标准 OAuth `/token` 端点，
+  无用户名+密码存储、无浏览器自动化、无 CAPTCHA 绕过逻辑。
+  账号状态监控和告警已就绪。
 - 备份、WAL 归档、恢复演练、监控告警、值班联系人和事故 Runbook 已就绪。
 - OpenAPI、SDK 示例、错误码、模型能力、价格说明、服务条款与隐私政策已发布。
 - 压测结果证明实际并发、带宽、数据库和上游配额符合目标 SLO。

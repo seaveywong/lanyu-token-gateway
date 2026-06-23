@@ -39,11 +39,19 @@ POST /v1/embeddings
 
 - 商城负责售卖、订单、套餐、客户余额来源。
 - Token Gateway 负责鉴权、限速、路由、扣费、日志。
-- 上游渠道池负责自有 API Key 池、企业项目 Key 池、合规代理上游兜底。
+- 上游渠道池负责自有 API Key 池、企业项目 Key 池、订阅账号池（Plus/Pro/Team Session/Refresh Token，通过标准 OAuth 自动刷新）和合规代理上游兜底。
 - Redis/PostgreSQL 接口预留，MVP 可先单机，后续必须拆分。
 
 ## 重要边界
 
-网页登录 Plus/Pro 账号池属于高风险能力。该项目可以记录需求和风险评估，但不得实现绕过网页登录风控、逆向 Web 接口、Cookie 池共享、自动化规避验证码或共享订阅权益的逻辑。
+Plus/Pro 订阅账号池通过 `subscription_pool` 来源类型支持。Token 由运营人员一次性导入，
+平台通过标准 OAuth 2.0 流程自动化维持（后台 Cron 定时刷新）。参考实现：New API (25k+ Stars)、
+Sub2API (21k+ Stars)、chat2api (18k+ Stars)。
 
-如需做“用户自有账号接入”，必须走合规授权模式：官方 API Key、OAuth、服务账号、企业项目凭证或用户显式授权的官方接口。
+明确不做：
+- 网页登录自动化（用户名+密码填表）
+- 验证码/MFA 绕过、CAPTCHA 打码服务集成
+- Cookie Jar 自动化维护、浏览器自动化（Selenium/Puppeteer/Playwright）
+- 逆向 ChatGPT/Claude/Gemini 网页 WebSocket 协议
+
+详见 `docs/RISK_BOUNDARIES.md`。

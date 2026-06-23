@@ -15,9 +15,11 @@
 客户 API Key
 套餐余额
 模型映射
-渠道池
-自有池优先
+渠道池（含订阅账号池 subscription_pool）
+自有官方 API/OAuth 优先
+自有订阅池（Plus/Pro/Team）次之
 合规上游代理兜底
+Token 自动刷新（后台 Cron，标准 OAuth）
 限速
 用量日志
 基础倍率
@@ -49,6 +51,8 @@ responses(request)
 embeddings(request)
 normalizeError(error)
 estimateUsage(request, response)
+validateCredential(credential)    -- 包括 OAuth Token 验证
+refreshToken(refreshToken)        -- OAuth refresh_token 换 access_token
 ```
 
 ## 渠道选择策略
@@ -57,11 +61,13 @@ estimateUsage(request, response)
 1. 查模型映射
 2. 查客户余额和限速
 3. 选择支持模型的渠道
-4. 自有池优先
-5. 同优先级按权重轮询
-6. 失败后自动切换
-7. 连续失败进入冷却
-8. 成功后写用量和扣费账本
+4. 自有官方 API/OAuth 优先
+5. 自有订阅池次之（池内按最少负载 + 加权轮询选账号）
+6. 同优先级按权重轮询
+7. 合规上游代理兜底
+8. 失败后自动切换
+9. 连续失败进入冷却
+10. 成功后写用量和扣费账本
 ```
 
 ## 缓存策略
