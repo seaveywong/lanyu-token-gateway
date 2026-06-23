@@ -16,7 +16,9 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	chimw "github.com/go-chi/chi/v5/middleware"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 
+	"github.com/seaveywong/lanyu-token-gateway/apps/data-plane/internal/cache"
 	"github.com/seaveywong/lanyu-token-gateway/apps/data-plane/internal/database"
 	"github.com/seaveywong/lanyu-token-gateway/apps/data-plane/internal/handler"
 	"github.com/seaveywong/lanyu-token-gateway/apps/data-plane/internal/middleware"
@@ -111,10 +113,16 @@ func main() {
 	authMiddleware := middleware.NewAuthMiddleware(apiKeyRepo, pepper)
 	rateLimiter := middleware.NewRateLimiter(db.Redis)
 
+	// --- 6.5 Initialize cache ---
+	exactCache := cache.NewExactCache(db.Redis)
+
 	// --- 7. Initialize handlers ---
 	modelsHandler := handler.NewModelsHandler()
-	chatHandler := handler.NewChatHandler(reg, sourceRepo, usageRepo)
+	chatHandler := handler.NewChatHandler(reg, sourceRepo, usageRepo, exactCache)
 	embeddingsHandler := handler.NewEmbeddingsHandler(reg, sourceRepo, usageRepo)
+	imageHandler := handler.NewImageHandler(reg, sourceRepo, usageRepo)
+	audioHandler := handler.NewAudioHandler(reg, sourceRepo, usageRepo)
+	moderationHandler := handler.NewModerationHandler(reg, sourceRepo, usageRepo)
 
 	// --- 8. Build chi router ---
 	r := chi.NewRouter()
@@ -127,6 +135,9 @@ func main() {
 
 	// Public routes
 	r.Get("/health", handler.HealthHandler)
+
+	// Metrics endpoint (internal -- only for Prometheus scraping, not exposed publicly)
+	r.Get("/metrics", promhttp.Handler().ServeHTTP)
 
 	// Authenticated routes
 	r.Group(func(r chi.Router) {
@@ -142,6 +153,16 @@ func main() {
 			r.Post("/v1/chat/completions", chatHandler.CreateChatCompletion)
 			r.Post("/v1/embeddings", embeddingsHandler.CreateEmbedding)
 		})
+
+		// Image generation endpoint
+		r.Post("/v1/images/generations", imageHandler.CreateImage)
+
+		// Audio endpoints
+		r.Post("/v1/audio/speech", audioHandler.CreateSpeech)
+		r.Post("/v1/audio/transcriptions", audioHandler.CreateTranscription)
+
+		// Moderation endpoint
+		r.Post("/v1/moderations", moderationHandler.CreateModeration)
 	})
 
 	// --- 9. Start HTTP server with graceful shutdown ---

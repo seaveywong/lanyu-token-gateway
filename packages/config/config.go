@@ -74,6 +74,16 @@ type AuthConfig struct {
 	KeyPrefix             string        `yaml:"key_prefix"`
 	KeyByteLength         int           `yaml:"key_byte_length"`
 	DefaultExpiryDuration time.Duration `yaml:"default_expiry_duration"`
+	// OIDC configuration (SSO).
+	// When OIDCIssuerURL is set, the portal login page shows a "Login with SSO" button
+	// that redirects to the OIDC provider.
+	OIDCIssuerURL    string `yaml:"oidc_issuer_url"`
+	OIDCClientID     string `yaml:"oidc_client_id"`
+	OIDCClientSecret string `yaml:"oidc_client_secret"`
+	OIDCRedirectURL  string `yaml:"oidc_redirect_url"`
+	// SAML (optional fallback).
+	SAMLEntityID    string `yaml:"saml_entity_id"`
+	SAMLMetadataURL string `yaml:"saml_metadata_url"`
 }
 
 // RoutingConfig holds request routing defaults.

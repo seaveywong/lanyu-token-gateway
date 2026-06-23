@@ -1,0 +1,82 @@
+groups:
+  - name: token-gateway
+    interval: 30s
+    rules:
+      - alert: HighErrorRate
+        expr: |
+          rate(http_requests_total{status_code=~"5.."}[5m]) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High 5xx error rate"
+          description: "Service {{ $labels.service }} has a 5xx error rate of {{ $value | humanize }}/s over the last 5 minutes."
+
+      - alert: AllChannelsDead
+        expr: |
+          sum(channel_health_gauge) == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "All channels unhealthy — no available routes"
+          description: "Every channel is reporting unhealthy. The gateway has no viable upstream routes."
+
+      - alert: CircuitBreakerOpen
+        expr: |
+          circuit_breaker_gauge == 2
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Circuit breaker open"
+          description: "At least one circuit breaker is in the open state (source blocked)."
+
+      - alert: CircuitBreakerHalfOpen
+        expr: |
+          circuit_breaker_gauge == 1
+        for: 30s
+        labels:
+          severity: info
+        annotations:
+          summary: "Circuit breaker half-open"
+          description: "A circuit breaker is testing upstream health (half-open state)."
+
+      - alert: CostSpike
+        expr: |
+          rate(upstream_cost_micro_usd_total[15m]) > 100000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Cost spike detected"
+          description: "Upstream cost is {{ $value | humanize }} micro_usd/min over the last 15 minutes."
+
+      - alert: BalanceLow
+        expr: |
+          ledger_balance_gauge < 1000000
+        labels:
+          severity: warning
+        annotations:
+          summary: "Low balance for wallet"
+          description: "Wallet {{ $labels.wallet_id }} has a balance below 1 USD ({{ $value }} micro_usd)."
+
+      - alert: SSEDisconnectSurge
+        expr: |
+          abs(delta(sse_connections_active[5m])) > 100
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "SSE connection drop detected"
+          description: "More than 100 SSE connections dropped in the last 5 minutes."
+
+      - alert: ServiceDown
+        expr: |
+          up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Service {{ $labels.instance }} is down"
+          description: "The {{ $labels.service }} service at {{ $labels.instance }} has been unreachable for more than 1 minute."

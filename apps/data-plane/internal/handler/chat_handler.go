@@ -9,6 +9,7 @@ import (
 	"time"
 
 	provider_sdk "github.com/seaveywong/lanyu-token-gateway/packages/provider-sdk"
+	"github.com/seaveywong/lanyu-token-gateway/apps/data-plane/internal/cache"
 	"github.com/seaveywong/lanyu-token-gateway/apps/data-plane/internal/middleware"
 	"github.com/seaveywong/lanyu-token-gateway/apps/data-plane/internal/provider"
 	"github.com/seaveywong/lanyu-token-gateway/apps/data-plane/internal/repository"
@@ -20,15 +21,20 @@ type ChatHandler struct {
 	registry   *provider.Registry
 	sourceRepo *repository.SourceRepo
 	usageRepo  *repository.UsageRepo
+	cache      *cache.ExactCache
 	logger     *slog.Logger
 }
 
+// DefaultCacheTTL is the default TTL for cached responses.
+const DefaultCacheTTL = 1 * time.Hour
+
 // NewChatHandler creates a new ChatHandler.
-func NewChatHandler(registry *provider.Registry, sourceRepo *repository.SourceRepo, usageRepo *repository.UsageRepo) *ChatHandler {
+func NewChatHandler(registry *provider.Registry, sourceRepo *repository.SourceRepo, usageRepo *repository.UsageRepo, exactCache *cache.ExactCache) *ChatHandler {
 	return &ChatHandler{
 		registry:   registry,
 		sourceRepo: sourceRepo,
 		usageRepo:  usageRepo,
+		cache:      exactCache,
 		logger:     slog.Default().With(slog.String("component", "chat_handler")),
 	}
 }
@@ -169,7 +175,42 @@ func (h *ChatHandler) CreateChatCompletion(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	// 6/7. Execute based on streaming preference
+	// 6. Check exact cache before invoking adapter (non-streaming only).
+	if !req.Stream && cache.IsCacheable(canonicalReq) {
+		cacheKey := cache.CacheKey(canonicalReq, "v1")
+		if cached, err := h.cache.Get(r.Context(), cacheKey); err == nil && cached != nil {
+			h.logger.Debug("cache hit",
+				slog.String("cache_key", cacheKey),
+				slog.String("request_id", requestID),
+			)
+			// Record usage as a cache hit.
+			h.recordUsage(r.Context(), requestID, orgID, projectID, keyID,
+				req.Model, string(resolvedSource.ResolvedModel),
+				"", source.ID, 0, 0, "cache_hit")
+
+			openAIResp := chatCompletionResponse{
+				ID:      "chatcmpl-" + requestID,
+				Object:  "chat.completion",
+				Created: cached.Created,
+				Model:   cached.Model,
+			}
+			if err := json.Unmarshal(cached.Choices, &openAIResp.Choices); err != nil {
+				h.logger.Warn("failed to unmarshal cached choices, falling through to adapter",
+					slog.String("error", err.Error()),
+				)
+			} else {
+				if err := json.Unmarshal(cached.Usage, &openAIResp.Usage); err != nil {
+					h.logger.Warn("failed to unmarshal cached usage",
+						slog.String("error", err.Error()),
+					)
+				}
+				respondJSON(w, http.StatusOK, openAIResp)
+				return
+			}
+		}
+	}
+
+	// 7/8. Execute based on streaming preference
 	if req.Stream {
 		h.handleStream(w, r, adapter, canonicalReq, resolvedSource, source, req, requestID, orgID, projectID, keyID)
 	} else {
@@ -275,6 +316,29 @@ func (h *ChatHandler) handleNonStream(
 	h.recordUsage(r.Context(), requestID, orgID, projectID, keyID,
 		req.Model, string(resolvedSource.ResolvedModel),
 		"", source.ID, usage.InputTokens, usage.OutputTokens, "completed")
+
+	// Store in exact cache if request is cacheable
+	if cache.IsCacheable(canonicalReq) {
+		cacheKey := cache.CacheKey(canonicalReq, "v1")
+		choicesJSON, _ := json.Marshal(openAIResp.Choices)
+		usageJSON, _ := json.Marshal(openAIResp.Usage)
+		cached := &cache.CachedResponse{
+			Model:   openAIResp.Model,
+			Choices: json.RawMessage(choicesJSON),
+			Usage:   json.RawMessage(usageJSON),
+			Created: time.Now().Unix(),
+		}
+		go func() {
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			if err := h.cache.Set(ctx, cacheKey, cached, DefaultCacheTTL); err != nil {
+				h.logger.Warn("failed to cache response",
+					slog.String("cache_key", cacheKey),
+					slog.String("error", err.Error()),
+				)
+			}
+		}()
+	}
 
 	respondJSON(w, http.StatusOK, openAIResp)
 }

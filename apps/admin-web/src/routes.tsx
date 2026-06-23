@@ -9,6 +9,8 @@ const ModelsPage = lazy(() => import('@/pages/ModelsPage'));
 const BillingPage = lazy(() => import('@/pages/BillingPage'));
 const SecurityPage = lazy(() => import('@/pages/SecurityPage'));
 const SupportPage = lazy(() => import('@/pages/SupportPage'));
+const ApprovalsPage = lazy(() => import('@/pages/ApprovalsPage'));
+const SettingsPage = lazy(() => import('@/pages/SettingsPage'));
 const LoginPage = lazy(() => import('@/pages/LoginPage'));
 
 const rootRoute = createRootRoute();
@@ -67,6 +69,18 @@ const supportRoute = createRoute({
   component: SupportPage,
 });
 
+const approvalsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/approvals',
+  component: ApprovalsPage,
+});
+
+const settingsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/settings',
+  component: SettingsPage,
+});
+
 const routeTree = rootRoute.addChildren([
   loginRoute,
   indexRoute,
@@ -77,6 +91,8 @@ const routeTree = rootRoute.addChildren([
   billingRoute,
   securityRoute,
   supportRoute,
+  approvalsRoute,
+  settingsRoute,
 ]);
 
 export const router = createRouter({ routeTree });
@@ -88,6 +104,8 @@ export const adminNavItems = [
   { path: '/channels', label: '渠道管理' },
   { path: '/models', label: '模型管理' },
   { path: '/billing', label: '计费财务' },
+  { path: '/approvals', label: '审批管理' },
   { path: '/security', label: '运营安全' },
+  { path: '/settings', label: '系统设置' },
   { path: '/support', label: '客服工单' },
 ] as const;

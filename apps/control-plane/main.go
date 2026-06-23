@@ -18,6 +18,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/seaveywong/lanyu-token-gateway/apps/control-plane/internal/database"
 	"github.com/seaveywong/lanyu-token-gateway/apps/control-plane/internal/handler"
 	mw "github.com/seaveywong/lanyu-token-gateway/apps/control-plane/internal/middleware"
@@ -78,6 +79,10 @@ func main() {
 	projectRepo := repository.NewProjectRepo(db.Pool)
 	apiKeyRepo := repository.NewAPIKeyRepo(db.Pool)
 	auditRepo := repository.NewAuditRepo(db.Pool)
+	webhookRepo := repository.NewWebhookRepo(db.Pool)
+	ticketRepo := repository.NewTicketRepo(db.Pool)
+
+	approvalRepo := repository.NewApprovalRepo(db.Pool)
 
 	// --- Service layer ---
 	// Note: pepper should be loaded from cfg.Auth.PepperPath at startup.
@@ -94,6 +99,8 @@ func main() {
 	}
 	apiKeySvc := service.NewAPIKeyService(apiKeyRepo, projectRepo, memberRepo, auditRepo, apiKeySvcCfg)
 	auditSvc := service.NewAuditService(auditRepo)
+	webhookSvc := service.NewWebhookService(webhookRepo, auditRepo)
+	ticketSvc := service.NewTicketService(ticketRepo, auditRepo)
 
 	accountSourceRepo := repository.NewAccountSourceRepo(db.Pool)
 	channelRepo := repository.NewChannelRepo(db.Pool)
@@ -124,6 +131,8 @@ func main() {
 	paymentSvc := service.NewPaymentService(paymentRepo, walletRepo, ledgerRepo, auditRepo, paymentSvcCfg)
 
 	reconSvc := service.NewReconciliationService(paymentRepo, ledgerRepo, auditRepo)
+
+	approvalSvc := service.NewApprovalService(approvalRepo, auditRepo)
 
 	// channelSvc, routingSvc, pricingSvc, walletSvc are wired here
 	// for future use when channel, routing, billing HTTP handlers
@@ -160,9 +169,24 @@ func main() {
 		accountSourceServiceAdapter,
 		auditServiceAdapter,
 		userServiceAdapter,
+		db.Redis,
 	)
 
 	paymentHandler := handler.NewPaymentHandler(paymentSvc, reconSvc)
+
+	approvalHandler := handler.NewApprovalHandler(approvalSvc)
+
+	// OIDC handler (SSO skeleton)
+	oidcConfig := handler.OIDCConfig{
+		IssuerURL:    cfg.Auth.OIDCIssuerURL,
+		ClientID:     cfg.Auth.OIDCClientID,
+		ClientSecret: cfg.Auth.OIDCClientSecret,
+		RedirectURL:  cfg.Auth.OIDCRedirectURL,
+	}
+	oidcHandler := handler.NewOIDCHandler(userServiceAdapter, jwtSecret, oidcConfig)
+
+	webhookHandler := handler.NewWebhookHandler(webhookSvc)
+	ticketHandler := handler.NewTicketHandler(ticketSvc)
 
 	// --- Start background health check loop ---
 	go healthSvc.StartHealthCheckLoop(context.Background(), 60*time.Second)
@@ -187,6 +211,13 @@ func main() {
 
 	// Health check (public)
 	r.Get("/health", healthHandler)
+
+	// Metrics endpoint (internal — only for Prometheus scraping, not exposed publicly)
+	r.Get("/metrics", promhttp.Handler().ServeHTTP)
+
+	// OIDC SSO routes (public — redirect flow)
+	r.Get("/portal-api/auth/oidc/login", oidcHandler.Login)
+	r.Get("/portal-api/auth/oidc/callback", oidcHandler.Callback)
 
 	// Payment provider callbacks (public — signature verified, no auth required)
 	r.Post("/api/payments/callback/alipay", paymentHandler.AlipayCallback)
@@ -226,6 +257,18 @@ func main() {
 		r.Get("/portal-api/payments/orders/{orderNo}", paymentHandler.GetOrder)
 		r.Post("/portal-api/payments/refunds", paymentHandler.RequestRefund)
 		r.Get("/portal-api/payments/refunds", paymentHandler.ListRefunds)
+
+		// Webhooks
+		r.Get("/portal-api/webhooks", webhookHandler.ListEndpoints)
+		r.Post("/portal-api/webhooks", webhookHandler.CreateEndpoint)
+		r.Put("/portal-api/webhooks/{id}", webhookHandler.UpdateEndpoint)
+		r.Delete("/portal-api/webhooks/{id}", webhookHandler.DeleteEndpoint)
+
+		// Support tickets
+		r.Get("/portal-api/tickets", ticketHandler.ListMyTickets)
+		r.Post("/portal-api/tickets", ticketHandler.CreateTicket)
+		r.Get("/portal-api/tickets/{id}", ticketHandler.GetTicket)
+		r.Post("/portal-api/tickets/{id}/messages", ticketHandler.AddMessage)
 	})
 
 	// --- Admin API: platform-level routes ---
@@ -239,11 +282,28 @@ func main() {
 		r.Post("/admin-api/account-sources", adminHandler.CreateAccountSource)
 		r.Get("/admin-api/audit-logs", adminHandler.ListAuditLogs)
 
+		// Cache management
+		r.Post("/admin-api/cache/invalidate", adminHandler.InvalidateCache)
+
 		// Payment & reconciliation
 		r.Post("/admin-api/payments/refunds/{id}/approve", paymentHandler.ApproveRefund)
 		r.Post("/admin-api/reconciliation/run", paymentHandler.TriggerReconciliation)
 		r.Get("/admin-api/reconciliation/report/{date}", paymentHandler.GetReconciliationReport)
 		r.Post("/admin-api/reconciliation/items/{id}/resolve", paymentHandler.ResolveDiscrepancy)
+
+		// Support tickets (admin)
+		r.Get("/admin-api/tickets", ticketHandler.AdminListTickets)
+		r.Get("/admin-api/tickets/{id}", ticketHandler.AdminGetTicket)
+		r.Patch("/admin-api/tickets/{id}", ticketHandler.AdminUpdateTicket)
+		r.Post("/admin-api/tickets/{id}/messages", ticketHandler.AdminAddMessage)
+
+		// Four-eyes approval workflow
+		r.Post("/admin-api/approvals", approvalHandler.Create)
+		r.Get("/admin-api/approvals/pending", approvalHandler.ListPending)
+		r.Get("/admin-api/approvals/history", approvalHandler.ListHistory)
+		r.Post("/admin-api/approvals/{id}/approve", approvalHandler.Approve)
+		r.Post("/admin-api/approvals/{id}/reject", approvalHandler.Reject)
+		r.Post("/admin-api/approvals/{id}/cancel", approvalHandler.Cancel)
 	})
 
 	// --- Start HTTP server ---

@@ -138,6 +138,45 @@
   color: #374151;
 }
 
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 20px 0;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #e5e7eb;
+}
+
+.dividerText {
+  font-size: 13px;
+  color: #9ca3af;
+  white-space: nowrap;
+}
+
+.ssoButton {
+  width: 100%;
+  padding: 11px 16px;
+  font-size: 15px;
+  font-weight: 500;
+  color: #374151;
+  background: #fff;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.ssoButton:hover {
+  background: #f9fafb;
+  border-color: #9ca3af;
+}
+
 @media (max-width: 480px) {
   .card {
     padding: 28px 20px;

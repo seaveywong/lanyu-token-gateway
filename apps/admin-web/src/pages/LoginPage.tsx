@@ -76,6 +76,17 @@ function LoginPage() {
           </button>
         </form>
 
+        <div className={styles.divider}>
+          <span className={styles.dividerText}>或</span>
+        </div>
+
+        <button
+          className={styles.ssoButton}
+          onClick={() => { window.location.href = '/portal-api/auth/oidc/login'; }}
+        >
+          使用企业账号登录
+        </button>
+
         <p className={styles.footer}>仅限授权管理员使用</p>
       </div>
     </div>

@@ -1,10 +1,15 @@
 package handler
 
 import (
+	"context"
+	"fmt"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/redis/go-redis/v9"
+
 	"github.com/seaveywong/lanyu-token-gateway/apps/control-plane/internal/middleware"
 )
 
@@ -15,6 +20,7 @@ type AdminHandler struct {
 	accountSourceService AccountSourceService
 	auditService         AuditService
 	userService          UserService
+	redis                *redis.Client
 }
 
 // NewAdminHandler creates a new AdminHandler with the required services.
@@ -23,12 +29,14 @@ func NewAdminHandler(
 	accountSourceService AccountSourceService,
 	auditService AuditService,
 	userService UserService,
+	redis *redis.Client,
 ) *AdminHandler {
 	return &AdminHandler{
 		orgHandler:           orgHandler,
 		accountSourceService: accountSourceService,
 		auditService:         auditService,
 		userService:          userService,
+		redis:                redis,
 	}
 }
 
@@ -126,5 +134,64 @@ func (h *AdminHandler) ListAuditLogs(w http.ResponseWriter, r *http.Request) {
 		"page":      page,
 		"page_size": pageSize,
 		"total":     total,
+	})
+}
+
+// InvalidateCache handles POST /admin-api/cache/invalidate.
+// Invalidates exact cache entries matching the given org_id, model, and version.
+func (h *AdminHandler) InvalidateCache(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		OrgID   string `json:"org_id"`
+		Model   string `json:"model"`
+		Version string `json:"version"`
+	}
+	if err := decodeJSON(r, &req); err != nil {
+		respondError(w, http.StatusBadRequest, "invalid_request", "invalid request body: "+err.Error(), requestID(r))
+		return
+	}
+
+	if h.redis == nil {
+		respondError(w, http.StatusServiceUnavailable, "service_unavailable", "cache not available", requestID(r))
+		return
+	}
+
+	// Scan for and delete matching cache keys.
+	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+	defer cancel()
+
+	pattern := "exact_cache:*"
+	var cursor uint64
+	var deleted int
+	for {
+		keys, nextCursor, err := h.redis.Scan(ctx, cursor, pattern, 100).Result()
+		if err != nil {
+			slog.Error("cache scan failed", slog.String("error", err.Error()))
+			respondError(w, http.StatusInternalServerError, "internal_error", "cache scan failed", requestID(r))
+			return
+		}
+
+		if len(keys) > 0 {
+			if err := h.redis.Del(ctx, keys...).Err(); err != nil {
+				slog.Error("cache del failed", slog.String("error", err.Error()))
+				respondError(w, http.StatusInternalServerError, "internal_error", "cache delete failed", requestID(r))
+				return
+			}
+			deleted += len(keys)
+		}
+
+		cursor = nextCursor
+		if cursor == 0 {
+			break
+		}
+	}
+
+	slog.Info("cache invalidated",
+		slog.String("pattern", pattern),
+		slog.Int("deleted", deleted),
+	)
+
+	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"message": fmt.Sprintf("invalidated %d cache entries", deleted),
+		"deleted": deleted,
 	})
 }
