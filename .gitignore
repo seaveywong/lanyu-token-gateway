@@ -1,10 +1,46 @@
-﻿node_modules/
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build output
 dist/
+build/
+*.exe
+*.test
+/tmp/
+
+# Environment
 .env
-.env.*
-*.db
-*.db-journal
-*.db-wal
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Go
+vendor/
+
+# Docker
+pgdata/
+redisdata/
+
+# Secrets
+*.pem
+*.key
+credentials.json
+service-account.json
+
+# Logs
 *.log
-release/
-backups/
+logs/
+
+# Cache
+.eslintcache
+.tsbuildinfo

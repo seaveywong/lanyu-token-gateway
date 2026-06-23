@@ -1,0 +1,88 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-token}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-token_dev}
+      POSTGRES_DB: ${POSTGRES_DB:-token_gateway}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-token} -d ${POSTGRES_DB:-token_gateway}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - token-network
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - token-network
+
+  data-plane:
+    build:
+      context: ../../apps/data-plane
+      dockerfile: Dockerfile.dev
+    ports:
+      - "${DATA_PLANE_PORT:-8080}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    env_file:
+      - .env
+    networks:
+      - token-network
+
+  control-plane:
+    build:
+      context: ../../apps/control-plane
+      dockerfile: Dockerfile.dev
+    ports:
+      - "${CONTROL_PLANE_PORT:-8081}:8081"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    env_file:
+      - .env
+    networks:
+      - token-network
+
+  async-worker:
+    build:
+      context: ../../apps/async-worker
+      dockerfile: Dockerfile.dev
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    env_file:
+      - .env
+    networks:
+      - token-network
+
+volumes:
+  pgdata:
+  redisdata:
+
+networks:
+  token-network:
+    driver: bridge

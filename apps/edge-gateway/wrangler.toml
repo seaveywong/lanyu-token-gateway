@@ -1,0 +1,10 @@
+name = "lanyu-token-gateway-edge"
+main = "src/index.ts"
+compatibility_date = "2025-06-01"
+
+[vars]
+ORIGIN_HOST = "origin-token.internal"
+DATA_PLANE_PORT = "8080"
+
+[[routes]]
+pattern = "api.lanyu.one/*"

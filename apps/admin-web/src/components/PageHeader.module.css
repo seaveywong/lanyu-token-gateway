@@ -1,0 +1,41 @@
+.header {
+  margin-bottom: 20px;
+}
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+
+.breadcrumbItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.separator {
+  color: #9ca3af;
+}
+
+.breadcrumbLink {
+  color: #6b7280;
+  text-decoration: none;
+}
+
+.breadcrumbLink:hover {
+  color: #4f46e5;
+}
+
+.breadcrumbCurrent {
+  color: #374151;
+}
+
+.title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}

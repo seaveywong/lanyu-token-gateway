@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Token Gateway Error Codes",
+  "description": "All error codes used across data-plane and control-plane",
+  "error_codes": {
+    "invalid_api_key": { "http_status": 401, "message": "Invalid API key", "retryable": false },
+    "key_disabled": { "http_status": 403, "message": "API key has been disabled", "retryable": false },
+    "insufficient_balance": { "http_status": 402, "message": "Insufficient balance", "retryable": false },
+    "project_budget_exceeded": { "http_status": 402, "message": "Project budget exceeded", "retryable": false },
+    "model_not_allowed": { "http_status": 403, "message": "Model not allowed for this key", "retryable": false },
+    "invalid_request": { "http_status": 400, "message": "Invalid request", "retryable": false },
+    "request_too_large": { "http_status": 413, "message": "Request too large", "retryable": false },
+    "rate_limit_exceeded": { "http_status": 429, "message": "Rate limit exceeded", "retryable": true },
+    "concurrency_limit_exceeded": { "http_status": 429, "message": "Concurrency limit exceeded", "retryable": true },
+    "upstream_timeout": { "http_status": 504, "message": "Upstream timeout", "retryable": true },
+    "provider_unavailable": { "http_status": 502, "message": "Provider unavailable", "retryable": true },
+    "feature_not_supported": { "http_status": 400, "message": "Feature not supported", "retryable": false },
+    "idempotency_conflict": { "http_status": 409, "message": "Idempotency key conflict", "retryable": false },
+    "internal_error": { "http_status": 500, "message": "Internal server error", "retryable": true }
+  }
+}

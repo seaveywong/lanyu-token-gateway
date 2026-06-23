@@ -1,0 +1,68 @@
+# Gitleaks configuration for lanyu-token-gateway
+# https://github.com/gitleaks/gitleaks
+
+# Enable all default rules
+[extend]
+useDefault = true
+
+# Allowlist: development configuration files and test fixtures
+[allowlist]
+  description = "Allowlist for development configs, docs, and test fixtures"
+  paths = [
+    "deploy/compose/.env.example",
+    "*.md",
+    "**/*.md",
+    "**/testdata/**",
+    "**/*_test.go",
+  ]
+
+# Custom rule: Lanyu API keys (ly_live_ and ly_test_ prefixes)
+[[rules]]
+  id = "lanyu-api-key"
+  description = "Detects Lanyu API keys (ly_live_ or ly_test_ prefixed)"
+  regex = '''ly_(live|test)_[A-Za-z0-9+/=]{32,}'''
+  keywords = ["ly_live_", "ly_test_"]
+  [rules.allowlist]
+    paths = [
+      "deploy/compose/.env.example",
+    ]
+
+# Custom rule: OpenAI API keys
+[[rules]]
+  id = "openai-api-key"
+  description = "Detects OpenAI API keys (sk- prefix)"
+  regex = '''sk-(?:proj-)?[A-Za-z0-9-_]{20,}'''
+  keywords = ["sk-"]
+  [rules.allowlist]
+    paths = [
+      "deploy/compose/.env.example",
+    ]
+
+# Custom rule: Anthropic API keys
+[[rules]]
+  id = "anthropic-api-key"
+  description = "Detects Anthropic API keys (sk-ant- prefix)"
+  regex = '''sk-ant-(?:api03-)?[A-Za-z0-9-_]{20,}'''
+  keywords = ["sk-ant-"]
+
+# Custom rule: JWT secrets (base64-encoded strings in secret/config contexts)
+[[rules]]
+  id = "jwt-secret"
+  description = "Detects JWT secret keys in configuration"
+  regex = '''(?i)(?:jwt|jwt_secret|jwt_signing_key)\s*[:=]\s*["']?[A-Za-z0-9+/=_-]{32,}["']?'''
+  keywords = ["jwt_secret", "jwt_signing_key", "JWT_SECRET"]
+  [rules.allowlist]
+    paths = [
+      "deploy/compose/.env.example",
+    ]
+
+# Custom rule: PostgreSQL connection strings (allowed only in .env.example)
+[[rules]]
+  id = "postgres-connection-string"
+  description = "Detects PostgreSQL connection strings with credentials"
+  regex = '''postgres(?:ql)?:\/\/[^:]+:[^@]+@[^\/]+\/[^\s"']+'''
+  keywords = ["postgres://", "postgresql://"]
+  [rules.allowlist]
+    paths = [
+      "deploy/compose/.env.example",
+    ]

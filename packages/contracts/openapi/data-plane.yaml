@@ -1,0 +1,179 @@
+openapi: 3.1.0
+info:
+  title: Token Gateway Data Plane API
+  version: 0.1.0
+  description: |
+    Public API for AI model access. All endpoints require
+    `Authorization: Bearer <API_KEY>` header.
+servers:
+  - url: https://api.lanyu.one/v1
+    description: Production
+  - url: http://localhost:8080/v1
+    description: Local development
+
+paths:
+  /models:
+    get:
+      operationId: listModels
+      summary: List available models
+      tags: [Models]
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: Model list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object: { type: string, enum: [list] }
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Model'
+
+  /chat/completions:
+    post:
+      operationId: createChatCompletion
+      summary: Create chat completion
+      tags: [Chat]
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatCompletionRequest'
+      responses:
+        '200':
+          description: Successful completion
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatCompletionResponse'
+            text/event-stream:
+              schema:
+                type: string
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '402':
+          $ref: '#/components/responses/Error402'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+
+  /responses:
+    post:
+      operationId: createResponse
+      summary: Create a response (Responses API)
+      tags: [Responses]
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                model: { type: string }
+                input: { type: string }
+                instructions: { type: string }
+                stream: { type: boolean }
+                tools: { type: array, items: { type: object } }
+      responses:
+        '200':
+          description: Successful response
+
+  /embeddings:
+    post:
+      operationId: createEmbedding
+      summary: Create embeddings
+      tags: [Embeddings]
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [model, input]
+              properties:
+                model: { type: string }
+                input: { oneOf: [{ type: string }, { type: array, items: { type: string } }] }
+                encoding_format: { type: string, enum: [float, base64] }
+      responses:
+        '200':
+          description: Successful embedding
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: http
+      scheme: bearer
+      description: API Key (format: ly_live_... or ly_test_...)
+
+  schemas:
+    Model:
+      type: object
+      properties:
+        id: { type: string }
+        object: { type: string, enum: [model] }
+        created: { type: integer }
+        owned_by: { type: string }
+
+    ChatCompletionRequest:
+      type: object
+      required: [model, messages]
+      properties:
+        model: { type: string }
+        messages:
+          type: array
+          items:
+            type: object
+        temperature: { type: number }
+        max_tokens: { type: integer }
+        stream: { type: boolean }
+        tools: { type: array, items: { type: object } }
+        tool_choice: { type: string }
+        user: { type: string }
+
+    ChatCompletionResponse:
+      type: object
+      properties:
+        id: { type: string }
+        object: { type: string }
+        created: { type: integer }
+        model: { type: string }
+        choices: { type: array, items: { type: object } }
+        usage:
+          type: object
+          properties:
+            prompt_tokens: { type: integer }
+            completion_tokens: { type: integer }
+            total_tokens: { type: integer }
+
+    GatewayError:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code: { type: string }
+            message: { type: string }
+            type: { type: string }
+            request_id: { type: string }
+            retry_after_seconds: { type: integer }
+
+  responses:
+    Error400: { description: Bad Request, content: { application/json: { schema: { $ref: '#/components/schemas/GatewayError' } } } }
+    Error401: { description: Unauthorized, content: { application/json: { schema: { $ref: '#/components/schemas/GatewayError' } } } }
+    Error402: { description: Payment Required, content: { application/json: { schema: { $ref: '#/components/schemas/GatewayError' } } } }
+    Error429: { description: Too Many Requests, content: { application/json: { schema: { $ref: '#/components/schemas/GatewayError' } } } }
+    Error500: { description: Internal Server Error, content: { application/json: { schema: { $ref: '#/components/schemas/GatewayError' } } } }

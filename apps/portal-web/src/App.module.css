@@ -1,0 +1,143 @@
+.layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* ── Navbar ─────────────────────────────────────────── */
+
+.navbar {
+  background: #fff;
+  border-bottom: 1px solid #e5e7eb;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.navInner {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  height: 56px;
+  padding: 0 24px;
+  gap: 32px;
+}
+
+.brand {
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.navLinks {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+}
+
+.navLink {
+  padding: 8px 14px;
+  font-size: 14px;
+  color: #6b7280;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.navLink:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.navLink.active {
+  background: #ede9fe;
+  color: #4f46e5;
+  font-weight: 600;
+}
+
+.hamburger {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  margin-left: auto;
+}
+
+.hamburgerLine {
+  display: block;
+  width: 22px;
+  height: 2px;
+  background: #374151;
+  border-radius: 1px;
+}
+
+/* ── Main content ───────────────────────────────────── */
+
+.main {
+  flex: 1;
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 32px 24px;
+}
+
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+/* ── Footer ─────────────────────────────────────────── */
+
+.footer {
+  text-align: center;
+  padding: 20px 24px;
+  font-size: 13px;
+  color: #9ca3af;
+  border-top: 1px solid #e5e7eb;
+}
+
+/* ── Mobile ─────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  .hamburger {
+    display: flex;
+  }
+
+  .navLinks {
+    display: none;
+    position: absolute;
+    top: 56px;
+    left: 0;
+    right: 0;
+    flex-direction: column;
+    background: #fff;
+    border-bottom: 1px solid #e5e7eb;
+    padding: 8px 0;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+  }
+
+  .navOpen {
+    display: flex;
+  }
+
+  .navLink {
+    width: 100%;
+    text-align: left;
+    padding: 12px 24px;
+    border-radius: 0;
+  }
+}
