@@ -57,6 +57,7 @@ const (
 
 // Billing defaults.
 const (
-	DefaultBillingPriceMicroUSD  int64 = 0
-	DefaultBillingCreditPrecision      = 4
+	DefaultBillingPriceMicroUSD  int64  = 0
+	DefaultBillingCreditPrecision       = 4
+	DefaultBillingPlatformOrgID  string = "00000000-0000-0000-0000-000000000001"
 )

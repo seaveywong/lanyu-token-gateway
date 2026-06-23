@@ -1,0 +1,343 @@
+/* ===== Layout ===== */
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.pageTitle {
+  font-size: 24px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+
+/* ===== Balance Section ===== */
+.balanceSection {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.balanceLoading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  color: #6b7280;
+  font-size: 14px;
+  width: 100%;
+}
+
+.balanceCards {
+  display: flex;
+  gap: 16px;
+  flex: 1;
+  flex-wrap: wrap;
+}
+
+.balanceCard {
+  flex: 1;
+  min-width: 180px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 20px 24px;
+}
+
+.balanceCardLabel {
+  font-size: 13px;
+  color: #6b7280;
+  margin-bottom: 8px;
+}
+
+.balanceCardValue {
+  font-size: 28px;
+  font-weight: 700;
+  color: #111827;
+  font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+}
+
+.balanceCardValueAvailable {
+  composes: balanceCardValue;
+  color: #059669;
+}
+
+.balanceCardValueFrozen {
+  composes: balanceCardValue;
+  color: #f59e0b;
+}
+
+.rechargeBtn {
+  padding: 12px 24px;
+  background: #4f46e5;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+  align-self: flex-start;
+}
+
+.rechargeBtn:hover {
+  background: #4338ca;
+}
+
+/* ===== Section ===== */
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.sectionTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+}
+
+.filterSelect {
+  padding: 6px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #374151;
+  background: #fff;
+  outline: none;
+  min-width: 120px;
+}
+
+.filterSelect:focus {
+  border-color: #4f46e5;
+}
+
+/* ===== Table ===== */
+.tableWrapper {
+  overflow-x: auto;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.table th {
+  background: #f9fafb;
+  padding: 10px 14px;
+  text-align: left;
+  font-weight: 600;
+  color: #374151;
+  font-size: 13px;
+  white-space: nowrap;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid #f3f4f6;
+  color: #374151;
+  white-space: nowrap;
+}
+
+.table tr:last-child td {
+  border-bottom: none;
+}
+
+.table tr:hover td {
+  background: #f9fafb;
+}
+
+.tableMono {
+  font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+  font-size: 13px;
+  color: #111827;
+  font-weight: 500;
+}
+
+.tableTime {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.tableDesc {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #6b7280;
+}
+
+/* ===== Amount ===== */
+.amount {
+  font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.amountPositive {
+  composes: amount;
+  color: #059669;
+}
+
+.amountNegative {
+  composes: amount;
+  color: #dc2626;
+}
+
+.amountZero {
+  composes: amount;
+  color: #9ca3af;
+}
+
+/* ===== Status badges ===== */
+.statusBadge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.6;
+}
+
+.statusSuccess {
+  background: #ecfdf5;
+  color: #065f46;
+}
+
+.statusPending {
+  background: #fffbeb;
+  color: #92400e;
+}
+
+.statusFailed {
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+.statusCancelled {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+/* ===== Empty ===== */
+.empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: #9ca3af;
+  font-size: 14px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+}
+
+/* ===== Loading ===== */
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+/* ===== Error ===== */
+.errorBanner {
+  padding: 12px 16px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  color: #dc2626;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.retryBtn {
+  padding: 4px 12px;
+  background: #fff;
+  border: 1px solid #fecaca;
+  border-radius: 4px;
+  color: #dc2626;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+/* ===== Pagination ===== */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border-top: 1px solid #f3f4f6;
+}
+
+.pageBtn {
+  padding: 6px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #fff;
+  color: #374151;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.pageBtn:hover {
+  background: #f3f4f6;
+}
+
+.pageBtn:disabled {
+  color: #d1d5db;
+  cursor: not-allowed;
+}
+
+.pageInfo {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 640px) {
+  .balanceCards {
+    flex-direction: column;
+  }
+
+  .balanceCard {
+    min-width: 100%;
+  }
+
+  .balanceSection {
+    flex-direction: column;
+  }
+
+  .rechargeBtn {
+    width: 100%;
+  }
+
+  .sectionHeader {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .tableWrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}

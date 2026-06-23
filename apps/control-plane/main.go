@@ -99,14 +99,36 @@ func main() {
 	channelRepo := repository.NewChannelRepo(db.Pool)
 	modelRepo := repository.NewModelRepo(db.Pool)
 
+	pricingRepo := repository.NewPricingRepo(db.Pool)
+	walletRepo := repository.NewWalletRepo(db.Pool)
+	ledgerRepo := repository.NewLedgerRepo(db.Pool)
+	paymentRepo := repository.NewPaymentRepo(db.Pool)
+
 	accountSourceSvc := service.NewAccountSourceService(accountSourceRepo, auditRepo)
 	channelSvc := service.NewChannelService(channelRepo, accountSourceRepo, auditRepo)
 	routingSvc := service.NewRoutingService(accountSourceRepo, modelRepo, db.Redis)
 	healthSvc := service.NewHealthService(accountSourceRepo, db.Redis)
 
-	// channelSvc and routingSvc are wired here for future use when channel and
-	// routing HTTP handlers are added to the admin and portal APIs.
-	_, _ = channelSvc, routingSvc
+	pricingSvc := service.NewPricingService(pricingRepo, auditRepo)
+
+	// Platform org ID identifies the organization whose org-level wallet
+	// collects platform revenue (the credit side of settlement double-entries).
+	// In production this should be configured in config.yaml under billing.platform_org_id.
+	platformOrgID := cfg.Billing.PlatformOrgID
+	if platformOrgID == "" {
+		platformOrgID = "00000000-0000-0000-0000-000000000001" // default platform org
+	}
+	walletSvc := service.NewWalletService(walletRepo, ledgerRepo, auditRepo, platformOrgID)
+
+	paymentSvcCfg := service.DefaultPaymentConfig()
+	paymentSvc := service.NewPaymentService(paymentRepo, walletRepo, ledgerRepo, auditRepo, paymentSvcCfg)
+
+	reconSvc := service.NewReconciliationService(paymentRepo, ledgerRepo, auditRepo)
+
+	// channelSvc, routingSvc, pricingSvc, walletSvc are wired here
+	// for future use when channel, routing, billing HTTP handlers
+	// are added to the admin and portal APIs.
+	_, _, _, _ = channelSvc, routingSvc, pricingSvc, walletSvc
 
 	// --- Adapters: bridge service types to handler interfaces ---
 	// Some handler interfaces require methods not yet on the service types
@@ -140,6 +162,8 @@ func main() {
 		userServiceAdapter,
 	)
 
+	paymentHandler := handler.NewPaymentHandler(paymentSvc, reconSvc)
+
 	// --- Start background health check loop ---
 	go healthSvc.StartHealthCheckLoop(context.Background(), 60*time.Second)
 
@@ -163,6 +187,10 @@ func main() {
 
 	// Health check (public)
 	r.Get("/health", healthHandler)
+
+	// Payment provider callbacks (public — signature verified, no auth required)
+	r.Post("/api/payments/callback/alipay", paymentHandler.AlipayCallback)
+	r.Post("/api/payments/callback/wechat", paymentHandler.WeChatCallback)
 
 	// --- Portal API: public auth routes ---
 	r.Post("/portal-api/auth/register", authHandler.Register)
@@ -191,6 +219,13 @@ func main() {
 		r.Get("/portal-api/projects/{projectId}/keys", apiKeyHandler.ListByProject)
 		r.Post("/portal-api/projects/{projectId}/keys", apiKeyHandler.Create)
 		r.Post("/portal-api/projects/{projectId}/keys/{keyId}/revoke", apiKeyHandler.Revoke)
+
+		// Payments
+		r.Post("/portal-api/payments/orders", paymentHandler.CreateOrder)
+		r.Get("/portal-api/payments/orders", paymentHandler.ListOrders)
+		r.Get("/portal-api/payments/orders/{orderNo}", paymentHandler.GetOrder)
+		r.Post("/portal-api/payments/refunds", paymentHandler.RequestRefund)
+		r.Get("/portal-api/payments/refunds", paymentHandler.ListRefunds)
 	})
 
 	// --- Admin API: platform-level routes ---
@@ -203,6 +238,12 @@ func main() {
 		r.Get("/admin-api/account-sources", adminHandler.ListAccountSources)
 		r.Post("/admin-api/account-sources", adminHandler.CreateAccountSource)
 		r.Get("/admin-api/audit-logs", adminHandler.ListAuditLogs)
+
+		// Payment & reconciliation
+		r.Post("/admin-api/payments/refunds/{id}/approve", paymentHandler.ApproveRefund)
+		r.Post("/admin-api/reconciliation/run", paymentHandler.TriggerReconciliation)
+		r.Get("/admin-api/reconciliation/report/{date}", paymentHandler.GetReconciliationReport)
+		r.Post("/admin-api/reconciliation/items/{id}/resolve", paymentHandler.ResolveDiscrepancy)
 	})
 
 	// --- Start HTTP server ---

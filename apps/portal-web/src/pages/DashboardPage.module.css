@@ -1,0 +1,265 @@
+/* ===== Layout ===== */
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.pageTitle {
+  font-size: 24px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+
+/* ===== Section ===== */
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sectionTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+}
+
+/* ===== Card grid ===== */
+.cardGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 20px 24px;
+  transition: box-shadow 0.15s;
+}
+
+.card:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.cardLabel {
+  font-size: 13px;
+  color: #6b7280;
+  margin-bottom: 8px;
+}
+
+.cardValue {
+  font-size: 24px;
+  font-weight: 700;
+  color: #111827;
+  font-variant-numeric: tabular-nums;
+}
+
+.cardValueBalance {
+  composes: cardValue;
+  color: #059669;
+  font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+}
+
+.cardValueFrozen {
+  composes: cardValue;
+  color: #f59e0b;
+  font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+}
+
+.cardValueCost {
+  composes: cardValue;
+  color: #4f46e5;
+  font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+}
+
+/* ===== Empty card ===== */
+.emptyCard {
+  text-align: center;
+  padding: 32px 20px;
+  color: #9ca3af;
+  font-size: 14px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+}
+
+/* ===== Error card ===== */
+.errorCardInner {
+  display: flex;
+  gap: 40px;
+}
+
+.errorCardStat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* ===== Project list ===== */
+.projectList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.projectCard {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.projectHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.projectName {
+  font-size: 15px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.projectId {
+  font-size: 12px;
+  color: #9ca3af;
+  font-family: monospace;
+}
+
+.projectBudgets {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.projectBudgetItem {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.budgetHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.budgetLabel {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.budgetValue {
+  font-size: 12px;
+  color: #374151;
+  font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+}
+
+.noBudget {
+  font-size: 13px;
+  color: #9ca3af;
+}
+
+/* ===== Progress bar ===== */
+.progressWrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.progressTrack {
+  flex: 1;
+  height: 8px;
+  background: #f3f4f6;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progressBar {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.progressLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: #374151;
+  font-variant-numeric: tabular-nums;
+  min-width: 32px;
+  text-align: right;
+}
+
+/* ===== Skeleton ===== */
+.skeletonLabel {
+  height: 14px;
+  width: 60%;
+  background: #f3f4f6;
+  border-radius: 4px;
+  margin-bottom: 8px;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.skeletonValue {
+  height: 28px;
+  width: 80%;
+  background: #f3f4f6;
+  border-radius: 4px;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* ===== Error / loading ===== */
+.errorBanner {
+  padding: 12px 16px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  color: #dc2626;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.retryBtn {
+  padding: 4px 12px;
+  background: #fff;
+  border: 1px solid #fecaca;
+  border-radius: 4px;
+  color: #dc2626;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 640px) {
+  .cardGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .errorCardInner {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .budgetHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
+}

@@ -91,6 +91,14 @@ func UserEmailFromContext(ctx context.Context) string {
 	return ""
 }
 
+// OrgIDFromContext extracts the current organization ID from the context.
+func OrgIDFromContext(ctx context.Context) string {
+	if v, ok := ctx.Value(CtxOrgID).(string); ok {
+		return v
+	}
+	return ""
+}
+
 // RolesFromContext extracts the authenticated user's roles from the context.
 func RolesFromContext(ctx context.Context) []string {
 	if v, ok := ctx.Value(CtxRoles).([]string); ok {

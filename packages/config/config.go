@@ -85,8 +85,9 @@ type RoutingConfig struct {
 
 // BillingConfig holds billing and pricing defaults.
 type BillingConfig struct {
-	DefaultPriceMicroUSD int64 `yaml:"default_price_micro_usd"`
-	CreditPrecision      int   `yaml:"credit_precision"`
+	DefaultPriceMicroUSD int64  `yaml:"default_price_micro_usd"`
+	CreditPrecision      int    `yaml:"credit_precision"`
+	PlatformOrgID        string `yaml:"platform_org_id"`
 }
 
 // Load reads a YAML configuration file from the given path and returns a
@@ -233,5 +234,8 @@ func (c *Config) applyDefaults() {
 
 	if c.Billing.CreditPrecision == 0 {
 		c.Billing.CreditPrecision = DefaultBillingCreditPrecision
+	}
+	if c.Billing.PlatformOrgID == "" {
+		c.Billing.PlatformOrgID = DefaultBillingPlatformOrgID
 	}
 }

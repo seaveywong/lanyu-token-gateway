@@ -1,0 +1,384 @@
+/* ===== Overlay ===== */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 24px;
+  animation: fadeInOverlay 0.2s ease-out;
+}
+
+@keyframes fadeInOverlay {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ===== Dialog ===== */
+.dialog {
+  background: #fff;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 440px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  animation: slideUp 0.25s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ===== Header ===== */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+}
+
+.closeBtn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  font-size: 22px;
+  color: #9ca3af;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.15s;
+}
+
+.closeBtn:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+/* ===== Body ===== */
+.body {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ===== Section ===== */
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sectionLabel {
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+}
+
+/* ===== Amount grid ===== */
+.amountGrid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+}
+
+.amountBtn {
+  padding: 10px 8px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: center;
+}
+
+.amountBtn:hover {
+  border-color: #4f46e5;
+  color: #4f46e5;
+}
+
+.amountBtnActive {
+  composes: amountBtn;
+  background: #4f46e5;
+  color: #fff;
+  border-color: #4f46e5;
+}
+
+.amountBtnActive:hover {
+  background: #4338ca;
+}
+
+/* ===== Custom amount ===== */
+.customAmountWrap {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 0;
+}
+
+.yuanPrefix,
+.yuanSuffix {
+  font-size: 16px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.customInput {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+  outline: none;
+  text-align: center;
+}
+
+.customInput:focus {
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+}
+
+/* ===== Payment methods ===== */
+.paymentMethods {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.paymentBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.paymentBtn:hover {
+  border-color: #4f46e5;
+}
+
+.paymentBtnActive {
+  composes: paymentBtn;
+  border-color: #4f46e5;
+  background: #ede9fe;
+  color: #4f46e5;
+}
+
+.paymentIcon {
+  font-size: 18px;
+}
+
+/* ===== Error ===== */
+.error {
+  padding: 10px 14px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  color: #dc2626;
+  font-size: 13px;
+}
+
+/* ===== Summary ===== */
+.summary {
+  padding: 12px 16px;
+  background: #f9fafb;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #374151;
+}
+
+/* ===== Submit ===== */
+.submitBtn {
+  width: 100%;
+  padding: 12px;
+  background: #4f46e5;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.submitBtn:hover {
+  background: #4338ca;
+}
+
+.submitBtn:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+/* ===== Pay step ===== */
+.payInfo {
+  text-align: center;
+  padding: 8px 0;
+}
+
+.payAmount {
+  margin-bottom: 8px;
+}
+
+.payAmountLabel {
+  display: block;
+  font-size: 13px;
+  color: #6b7280;
+  margin-bottom: 4px;
+}
+
+.payAmountValue {
+  font-size: 32px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.payOrderNo {
+  font-size: 12px;
+  color: #9ca3af;
+  font-family: monospace;
+}
+
+/* ===== QR code ===== */
+.qrWrapper {
+  display: flex;
+  justify-content: center;
+  padding: 8px 0;
+}
+
+.qrImage {
+  width: 200px;
+  height: 200px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.qrPlaceholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 24px;
+  border: 2px dashed #d1d5db;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 260px;
+}
+
+.qrIcon {
+  font-size: 36px;
+}
+
+.qrText {
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.qrDesc {
+  font-size: 12px;
+  color: #9ca3af;
+  text-align: center;
+  line-height: 1.6;
+}
+
+.qrBox {
+  width: 120px;
+  height: 120px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.qrPattern {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+}
+
+.qrDot {
+  width: 8px;
+  height: 8px;
+  background: #d1d5db;
+  border-radius: 1px;
+}
+
+/* ===== Pay hint ===== */
+.payHint {
+  text-align: center;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+/* ===== Back button ===== */
+.backBtn {
+  width: 100%;
+  padding: 10px;
+  background: #fff;
+  color: #6b7280;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.backBtn:hover {
+  background: #f9fafb;
+  color: #374151;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 480px) {
+  .dialog {
+    max-width: 100%;
+    border-radius: 12px 12px 0 0;
+    max-height: 85vh;
+  }
+
+  .amountGrid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .qrPlaceholder {
+    max-width: 100%;
+  }
+}

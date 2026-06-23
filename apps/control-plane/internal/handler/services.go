@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"time"
 
 	"github.com/seaveywong/lanyu-token-gateway/apps/control-plane/internal/repository"
 )
@@ -74,4 +75,27 @@ type AccountSourceResponse struct {
 	Name       string `json:"name"`
 	SourceType string `json:"source_type"`
 	Status     string `json:"status"`
+}
+
+// ---------------------------------------------------------------------------
+// Payment & Reconciliation service interfaces
+// ---------------------------------------------------------------------------
+
+// PaymentService defines the payment operations required by HTTP handlers.
+type PaymentService interface {
+	CreateOrder(ctx context.Context, userID, orgID, paymentMethod string, amountYuan int) (*repository.PaymentOrder, error)
+	HandleCallback(ctx context.Context, provider, eventType string, payload interface{}) error
+	RequestRefund(ctx context.Context, userID, orderNo, reason string, amountMicroUSD int64) (*repository.RefundRequest, error)
+	ApproveRefund(ctx context.Context, approverID, refundID string) error
+	GetOrderStatus(ctx context.Context, orderNo string) (*repository.PaymentOrder, error)
+	ListOrders(ctx context.Context, orgID string, page, pageSize int) ([]repository.PaymentOrder, int, error)
+	ListRefunds(ctx context.Context, orgID string, page, pageSize int) ([]repository.RefundRequest, int, error)
+}
+
+// ReconciliationService defines the reconciliation operations required by HTTP handlers.
+type ReconciliationService interface {
+	RunDailyReconciliation(ctx context.Context, date time.Time) (*repository.ReconciliationRun, error)
+	GetDiscrepancies(ctx context.Context, runID string) ([]repository.ReconciliationItem, error)
+	ResolveDiscrepancy(ctx context.Context, itemID, resolution, notes string, correctionAmount int64) error
+	GetDailyReport(ctx context.Context, date time.Time) (interface{}, error)
 }
