@@ -44,6 +44,8 @@ const (
 	DefaultAuthKeyPrefix           = "ly_live_"
 	DefaultAuthKeyByteLength       = 32
 	DefaultAuthExpiryDuration      = 0 // 0 means no expiry by default
+	DefaultAuthAccessTokenExpiry   = 15 * time.Minute
+	DefaultAuthRefreshTokenExpiry  = 7 * 24 * time.Hour
 )
 
 // Routing defaults.

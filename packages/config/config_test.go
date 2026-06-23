@@ -23,6 +23,7 @@ observability:
   service_name: "test-service"
 auth:
   pepper_path: "/etc/lanyu/pepper"
+  jwt_secret: "test-jwt-secret"
 `)
 	dir := t.TempDir()
 	path := filepath.Join(dir, "config.yaml")
@@ -61,7 +62,7 @@ func TestValidate_Success(t *testing.T) {
 		},
 		Redis: RedisConfig{Addr: "localhost:6379"},
 		Observability: ObservabilityConfig{ServiceName: "test"},
-		Auth: AuthConfig{PepperPath: "/etc/lanyu/pepper"},
+		Auth: AuthConfig{PepperPath: "/etc/lanyu/pepper", JWTSecret: "test-jwt-secret"},
 	}
 	if err := cfg.Validate(); err != nil {
 		t.Errorf("Validate() error = %v, want nil", err)
@@ -90,6 +91,7 @@ observability:
   service_name: "test-svc"
 auth:
   pepper_path: "/etc/pepper"
+  jwt_secret: "test-jwt-secret"
 `)
 	dir := t.TempDir()
 	path := filepath.Join(dir, "config.yaml")

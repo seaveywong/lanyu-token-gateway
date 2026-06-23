@@ -68,6 +68,9 @@ type ObservabilityConfig struct {
 // AuthConfig holds authentication and API key settings.
 type AuthConfig struct {
 	PepperPath            string        `yaml:"pepper_path"`
+	JWTSecret             string        `yaml:"jwt_secret"`
+	AccessTokenExpiry     time.Duration `yaml:"access_token_expiry"`
+	RefreshTokenExpiry    time.Duration `yaml:"refresh_token_expiry"`
 	KeyPrefix             string        `yaml:"key_prefix"`
 	KeyByteLength         int           `yaml:"key_byte_length"`
 	DefaultExpiryDuration time.Duration `yaml:"default_expiry_duration"`
@@ -129,6 +132,9 @@ func (c *Config) Validate() error {
 	}
 	if c.Auth.PepperPath == "" {
 		return fmt.Errorf("config: auth.pepper_path is required")
+	}
+	if c.Auth.JWTSecret == "" {
+		return fmt.Errorf("config: auth.jwt_secret is required")
 	}
 	return nil
 }
@@ -199,6 +205,12 @@ func (c *Config) applyDefaults() {
 		c.Observability.LogFormat = DefaultLogFormat
 	}
 
+	if c.Auth.AccessTokenExpiry == 0 {
+		c.Auth.AccessTokenExpiry = DefaultAuthAccessTokenExpiry
+	}
+	if c.Auth.RefreshTokenExpiry == 0 {
+		c.Auth.RefreshTokenExpiry = DefaultAuthRefreshTokenExpiry
+	}
 	if c.Auth.KeyPrefix == "" {
 		c.Auth.KeyPrefix = DefaultAuthKeyPrefix
 	}

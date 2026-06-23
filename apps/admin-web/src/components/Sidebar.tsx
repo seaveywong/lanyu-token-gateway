@@ -10,9 +10,11 @@ interface SidebarProps {
   currentPath: string;
   onNavigate: (path: string) => void;
   isOpen: boolean;
+  userEmail?: string | null;
+  onLogout?: () => void;
 }
 
-function Sidebar({ navItems, currentPath, onNavigate, isOpen }: SidebarProps) {
+function Sidebar({ navItems, currentPath, onNavigate, isOpen, userEmail, onLogout }: SidebarProps) {
   return (
     <aside className={`${styles.sidebar} ${isOpen ? styles.open : ''}`}>
       <div className={styles.brand}>
@@ -30,6 +32,16 @@ function Sidebar({ navItems, currentPath, onNavigate, isOpen }: SidebarProps) {
           </button>
         ))}
       </nav>
+      {userEmail && (
+        <div className={styles.userFooter}>
+          <span className={styles.userEmail}>{userEmail}</span>
+          {onLogout && (
+            <button className={styles.logoutButton} onClick={onLogout}>
+              退出登录
+            </button>
+          )}
+        </div>
+      )}
     </aside>
   );
 }

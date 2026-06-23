@@ -61,6 +61,40 @@
   font-weight: 600;
 }
 
+.userFooter {
+  margin-top: auto;
+  padding: 16px 20px;
+  border-top: 1px solid #374151;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.userEmail {
+  font-size: 13px;
+  color: #9ca3af;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.logoutButton {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 6px 0;
+  font-size: 13px;
+  color: #f87171;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.logoutButton:hover {
+  color: #fca5a5;
+}
+
 @media (max-width: 768px) {
   .sidebar {
     transform: translateX(-100%);

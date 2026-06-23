@@ -7,6 +7,13 @@
   display: none;
 }
 
+.mainFull {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
 .main {
   flex: 1;
   display: flex;

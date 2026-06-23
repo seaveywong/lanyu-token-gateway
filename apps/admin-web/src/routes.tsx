@@ -8,8 +8,15 @@ const ChannelsPage = lazy(() => import('@/pages/ChannelsPage'));
 const BillingPage = lazy(() => import('@/pages/BillingPage'));
 const SecurityPage = lazy(() => import('@/pages/SecurityPage'));
 const SupportPage = lazy(() => import('@/pages/SupportPage'));
+const LoginPage = lazy(() => import('@/pages/LoginPage'));
 
 const rootRoute = createRootRoute();
+
+const loginRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/login',
+  component: LoginPage,
+});
 
 const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -54,6 +61,7 @@ const supportRoute = createRoute({
 });
 
 const routeTree = rootRoute.addChildren([
+  loginRoute,
   indexRoute,
   usersRoute,
   apiKeysRoute,

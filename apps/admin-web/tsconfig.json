@@ -17,7 +17,9 @@
     "noFallthroughCasesInSwitch": true,
     "allowImportingTsExtensions": true,
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@lanyu/web-shared": ["../../packages/web-shared/src/index.ts"],
+      "@lanyu/web-shared/*": ["../../packages/web-shared/src/*"]
     }
   },
   "include": ["src", "vite-env.d.ts"]
