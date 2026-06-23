@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/seaveywong/lanyu-token-gateway/packages/provider_sdk"
+	"github.com/seaveywong/lanyu-token-gateway/packages/provider-sdk"
 )
 
 // Registry holds all registered ProviderAdapter instances, keyed by ProviderID.

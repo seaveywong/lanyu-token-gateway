@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/seaveywong/lanyu-token-gateway/packages/provider_sdk"
+	"github.com/seaveywong/lanyu-token-gateway/packages/provider-sdk"
 )
 
 // ---------------------------------------------------------------------------

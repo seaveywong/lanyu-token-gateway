@@ -27,6 +27,7 @@ require (
 	go.opentelemetry.io/otel v1.35.0 // indirect
 	go.opentelemetry.io/otel/metric v1.35.0 // indirect
 	go.opentelemetry.io/otel/trace v1.35.0 // indirect
+	golang.org/x/crypto v0.31.0 // indirect
 )
 
 replace (
@@ -35,4 +36,7 @@ replace (
 	github.com/seaveywong/lanyu-token-gateway/packages/contracts => ../../packages/contracts
 	github.com/seaveywong/lanyu-token-gateway/packages/observability => ../../packages/observability
 	github.com/seaveywong/lanyu-token-gateway/packages/provider-sdk => ../../packages/provider-sdk
+	golang.org/x/crypto v0.31.0 => github.com/golang/crypto v0.31.0
+	golang.org/x/sync v0.10.0 => github.com/golang/sync v0.10.0
+	golang.org/x/text v0.21.0 => github.com/golang/text v0.21.0
 )

@@ -18,7 +18,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
+	// "github.com/prometheus/client_golang/prometheus/promhttp" // TODO: enable when dependencies available
 	"github.com/seaveywong/lanyu-token-gateway/apps/control-plane/internal/database"
 	"github.com/seaveywong/lanyu-token-gateway/apps/control-plane/internal/handler"
 	mw "github.com/seaveywong/lanyu-token-gateway/apps/control-plane/internal/middleware"
@@ -213,7 +213,7 @@ func main() {
 	r.Get("/health", healthHandler)
 
 	// Metrics endpoint (internal — only for Prometheus scraping, not exposed publicly)
-	r.Get("/metrics", promhttp.Handler().ServeHTTP)
+	// r.Get("/metrics", promhttp.Handler().ServeHTTP) // TODO: enable when prometheus client_golang available
 
 	// OIDC SSO routes (public — redirect flow)
 	r.Get("/portal-api/auth/oidc/login", oidcHandler.Login)

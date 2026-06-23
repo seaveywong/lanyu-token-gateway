@@ -7,7 +7,7 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
-	"github.com/seaveywong/lanyu-token-gateway/packages/provider_sdk"
+	"github.com/seaveywong/lanyu-token-gateway/packages/provider-sdk"
 )
 
 // ---------------------------------------------------------------------------

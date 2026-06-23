@@ -16,7 +16,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	chimw "github.com/go-chi/chi/v5/middleware"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
+	// "github.com/prometheus/client_golang/prometheus/promhttp" // TODO: enable when dependencies available
 
 	"github.com/seaveywong/lanyu-token-gateway/apps/data-plane/internal/cache"
 	"github.com/seaveywong/lanyu-token-gateway/apps/data-plane/internal/database"
@@ -137,7 +137,7 @@ func main() {
 	r.Get("/health", handler.HealthHandler)
 
 	// Metrics endpoint (internal -- only for Prometheus scraping, not exposed publicly)
-	r.Get("/metrics", promhttp.Handler().ServeHTTP)
+	// r.Get("/metrics", promhttp.Handler().ServeHTTP) // TODO: enable when prometheus client_golang available
 
 	// Authenticated routes
 	r.Group(func(r chi.Router) {
