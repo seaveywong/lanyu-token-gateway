@@ -34,12 +34,6 @@ const STATUS_LABELS: Record<string, string> = {
   cancelled: '已取消',
 };
 
-const STATUS_CLASSES: Record<string, string> = {
-  pending: 'statusPending',
-  approved: 'statusApproved',
-  rejected: 'statusRejected',
-  cancelled: 'statusCancelled',
-};
 
 function ApprovalsPage() {
   const [tab, setTab] = useState<'pending' | 'history'>('pending');

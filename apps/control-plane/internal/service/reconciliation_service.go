@@ -105,13 +105,13 @@ func (s *ReconciliationService) RunDailyReconciliation(ctx context.Context, date
 	// discrepancy item.
 
 	// Build lookup maps from each side and cross-reference.
-	providerByRequest := make(map[string]providerChargeStub)
+	providerByRequest := make(map[string]chargeStub)
 	for _, pc := range providerCharges {
 		if pc.RequestID != nil {
 			providerByRequest[*pc.RequestID] = pc
 		}
 	}
-	platformByRequest := make(map[string]platformRecordStub)
+	platformByRequest := make(map[string]chargeStub)
 	for _, pr := range platformRecords {
 		if pr.RequestID != nil {
 			platformByRequest[*pr.RequestID] = pr
@@ -149,9 +149,7 @@ func (s *ReconciliationService) RunDailyReconciliation(ctx context.Context, date
 		if _, ok := providerByRequest[reqID]; !ok {
 			// Platform recorded but no provider charge → missing_charge (or delayed_bill)
 			typ := "missing_charge"
-			if pr.IsRecent {
-				typ = "delayed_bill"
-			}
+			// TODO: check record age to distinguish delayed_bill vs missing_charge
 			diff := pr.Amount
 			if err := s.payments.CreateReconciliationItem(ctx, run.ID, typ, &reqID,
 				0, pr.Amount, 0, diff); err != nil {
@@ -305,25 +303,18 @@ func (s *ReconciliationService) GetDailyReport(ctx context.Context, date time.Ti
 // Stub types and helpers for reconciliation
 // ---------------------------------------------------------------------------
 
-// providerChargeStub represents a charge from an upstream provider.
+// chargeStub represents a charge from an upstream provider.
 // TODO: Replace with real provider billing API integration.
-type providerChargeStub struct {
+type chargeStub struct {
 	RequestID *string
 	Amount    int64 // micro USD
 	Timestamp time.Time
 }
 
-// platformRecordStub represents a usage record from the platform.
-// TODO: Replace with actual usage_events query.
-type platformRecordStub struct {
-	RequestID *string
-	Amount    int64  // micro USD
-	IsRecent  bool   // true if the record was created recently (might be delayed_bill)
-}
 
 // queryProviderChargesStub returns stub provider charges for a date.
 // TODO: Call provider billing API (Alipay bill, WeChat Pay statement, etc.).
-func (s *ReconciliationService) queryProviderChargesStub(ctx context.Context, date time.Time) []providerChargeStub {
+func (s *ReconciliationService) queryProviderChargesStub(ctx context.Context, date time.Time) []chargeStub {
 	slog.Info("queryProviderCharges: STUB — no real provider API integration yet",
 		slog.String("date", date.Format("2006-01-02")),
 	)
@@ -332,7 +323,7 @@ func (s *ReconciliationService) queryProviderChargesStub(ctx context.Context, da
 
 // queryPlatformUsageStub returns stub platform usage records for a date.
 // TODO: Query usage_events table for the given date.
-func (s *ReconciliationService) queryPlatformUsageStub(ctx context.Context, date time.Time) []platformRecordStub {
+func (s *ReconciliationService) queryPlatformUsageStub(ctx context.Context, date time.Time) []chargeStub {
 	slog.Info("queryPlatformUsage: STUB — no usage_events query yet",
 		slog.String("date", date.Format("2006-01-02")),
 	)
@@ -341,15 +332,15 @@ func (s *ReconciliationService) queryPlatformUsageStub(ctx context.Context, date
 
 // queryLedgerEntriesStub returns stub ledger entries for a date.
 // TODO: Query ledger_entries for the given date.
-func (s *ReconciliationService) queryLedgerEntriesStub(ctx context.Context, date time.Time) []providerChargeStub {
+func (s *ReconciliationService) queryLedgerEntriesStub(ctx context.Context, date time.Time) []chargeStub {
 	slog.Info("queryLedgerEntries: STUB — no ledger query yet",
 		slog.String("date", date.Format("2006-01-02")),
 	)
 	return nil
 }
 
-// sumCharges sums the amounts from a slice of providerChargeStub.
-func sumCharges(charges []providerChargeStub) int64 {
+// sumCharges sums the amounts from a slice of chargeStub.
+func sumCharges(charges []chargeStub) int64 {
 	var total int64
 	for _, c := range charges {
 		total += c.Amount

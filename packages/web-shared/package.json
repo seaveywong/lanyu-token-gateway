@@ -4,7 +4,11 @@
   "type": "module",
   "main": "./src/index.ts",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./auth/AuthContext": "./src/auth/AuthContext.tsx",
+    "./auth/tokens": "./src/auth/tokens.ts",
+    "./api/client": "./src/api/client.ts",
+    "./api/auth": "./src/api/auth.ts"
   },
   "dependencies": {
     "react": "^19.1.0"

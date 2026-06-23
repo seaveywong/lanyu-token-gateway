@@ -97,18 +97,18 @@ func (s *RoutingService) ResolveModel(ctx context.Context, externalModel string)
 // 5. Health (skip if circuit open or dead)
 //
 // Returns nil if no candidate is available.
+type eligibleSource struct {
+	source      repository.AccountSource
+	totalWeight int
+	weightSum   int
+}
+
 func (s *RoutingService) SelectSource(ctx context.Context, candidates []repository.AccountSource) (*repository.AccountSource, error) {
 	if len(candidates) == 0 {
 		return nil, fmt.Errorf("select source: no candidates available")
 	}
 
-	type eligible struct {
-		source      repository.AccountSource
-		totalWeight int
-		weightSum   int
-	}
-
-	var eligibleList []eligible
+	var eligibleList []eligibleSource
 	totalWeight := 0
 
 	for _, c := range candidates {
@@ -139,7 +139,7 @@ func (s *RoutingService) SelectSource(ctx context.Context, candidates []reposito
 		}
 
 		totalWeight += c.Weight
-		eligibleList = append(eligibleList, eligible{
+		eligibleList = append(eligibleList, eligibleSource{
 			source:      c,
 			totalWeight: c.Weight,
 			weightSum:   0, // filled below
@@ -180,7 +180,7 @@ func (s *RoutingService) SelectSource(ctx context.Context, candidates []reposito
 
 // weightedSelect picks one source from a same-priority list using weighted
 // round-robin selection.
-func (s *RoutingService) weightedSelect(eligible []eligible) eligible {
+func (s *RoutingService) weightedSelect(eligible []eligibleSource) eligibleSource {
 	if len(eligible) == 1 {
 		return eligible[0]
 	}

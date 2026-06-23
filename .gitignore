@@ -44,3 +44,5 @@ logs/
 # Cache
 .eslintcache
 .tsbuildinfo
+bin/
+*.tsbuildinfo

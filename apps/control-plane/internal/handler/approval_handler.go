@@ -67,9 +67,9 @@ func (h *ApprovalHandler) Create(w http.ResponseWriter, r *http.Request) {
 // Records an approval from the current user.
 func (h *ApprovalHandler) Approve(w http.ResponseWriter, r *http.Request) {
 	userID := middleware.UserIDFromContext(r.Context())
-	requestID := chi.URLParam(r, "id")
+	approvalID := chi.URLParam(r, "id")
 
-	result, err := h.approvalService.Approve(r.Context(), userID, requestID)
+	result, err := h.approvalService.Approve(r.Context(), userID, approvalID)
 	if err != nil {
 		slog.Error("approve failed", slog.String("error", err.Error()))
 		respondError(w, http.StatusBadRequest, "approval_failed", err.Error(), requestID(r))
@@ -78,7 +78,7 @@ func (h *ApprovalHandler) Approve(w http.ResponseWriter, r *http.Request) {
 
 	if result.Status == "approved" {
 		slog.Info("approval request fully approved",
-			slog.String("request_id", requestID),
+			slog.String("request_id", requestID(r)),
 			slog.String("action", result.Action))
 	}
 
@@ -89,7 +89,7 @@ func (h *ApprovalHandler) Approve(w http.ResponseWriter, r *http.Request) {
 // Rejects an approval request.
 func (h *ApprovalHandler) Reject(w http.ResponseWriter, r *http.Request) {
 	userID := middleware.UserIDFromContext(r.Context())
-	requestID := chi.URLParam(r, "id")
+	approvalID := chi.URLParam(r, "id")
 
 	var req struct {
 		Reason string `json:"reason"`
@@ -103,7 +103,7 @@ func (h *ApprovalHandler) Reject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.approvalService.Reject(r.Context(), userID, requestID, req.Reason); err != nil {
+	if err := h.approvalService.Reject(r.Context(), userID, approvalID, req.Reason); err != nil {
 		slog.Error("reject failed", slog.String("error", err.Error()))
 		respondError(w, http.StatusBadRequest, "approval_failed", err.Error(), requestID(r))
 		return
@@ -116,9 +116,9 @@ func (h *ApprovalHandler) Reject(w http.ResponseWriter, r *http.Request) {
 // Cancels a pending approval request. Only the requester can cancel.
 func (h *ApprovalHandler) Cancel(w http.ResponseWriter, r *http.Request) {
 	userID := middleware.UserIDFromContext(r.Context())
-	requestID := chi.URLParam(r, "id")
+	approvalID := chi.URLParam(r, "id")
 
-	if err := h.approvalService.Cancel(r.Context(), userID, requestID); err != nil {
+	if err := h.approvalService.Cancel(r.Context(), userID, approvalID); err != nil {
 		slog.Error("cancel failed", slog.String("error", err.Error()))
 		respondError(w, http.StatusBadRequest, "cancel_failed", err.Error(), requestID(r))
 		return
